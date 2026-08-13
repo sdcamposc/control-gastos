@@ -1,388 +1,468 @@
-<!DOCTYPE html>
-<html lang="es-CL">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Control Gastos — Sebastián</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<style>
-  :root{
-    --bg:#0F1620;
-    --surface:#172230;
-    --surface-2:#1E2B3B;
-    --border:#2A3A4D;
-    --text:#EDEFF2;
-    --muted:#8A97A6;
-    --green:#4ADE94;
-    --amber:#F5B942;
-    --red:#F0654E;
-    --blue:#6C8EEF;
-    --radius:14px;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0; background:var(--bg); color:var(--text);
-    font-family:'Inter',sans-serif;
-    padding:24px 16px 80px;
-  }
-  h1,h2,h3{font-family:'Space Grotesk',sans-serif; margin:0;}
-  .mono{font-family:'JetBrains Mono',monospace;}
-  .wrap{max-width:920px; margin:0 auto;}
+/**
+ * BOT DE TELEGRAM - Iteración 3
+ * Requiere: procesarCorreos.gs en el mismo proyecto (usa SHEET_ID y esMiPropioNombre_).
+ *
+ * ANTES DE USAR:
+ * 1. Reemplaza TELEGRAM_TOKEN con el token de tu bot (BotFather).
+ * 2. Reemplaza CHAT_ID_AUTORIZADO con tu chat_id (ya lo sacaste: 7723878082).
+ * 3. Implementa como Web App (Implementar > Nueva implementación > Aplicación web,
+ *    Ejecutar como "Yo", Acceso "Cualquier usuario") y copia la URL resultante.
+ * 4. Registra el webhook abriendo en el navegador (reemplazando ambos valores):
+ *    https://api.telegram.org/bot<TU_TOKEN>/setWebhook?url=<TU_URL_WEBAPP>
+ */
 
-  /* Header */
-  header{margin-bottom:28px;}
-  .eyebrow{color:var(--muted); font-size:13px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:6px;}
-  h1{font-size:22px; font-weight:600;}
-  .hero{
-    display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:18px;
-  }
-  @media(max-width:520px){.hero{grid-template-columns:1fr;}}
-  .hero-card{
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-    padding:18px 20px;
-  }
-  .hero-label{color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.06em;}
-  .hero-value{font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:700; margin-top:4px;}
-  .hero-sub{font-size:12px; color:var(--muted); margin-top:6px;}
-  .signal{display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:8px; vertical-align:middle;}
-
-  /* Section */
-  section{margin-top:36px;}
-  .section-title{font-size:15px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px;}
-  .section-title .n{color:var(--muted); font-weight:500; font-size:12px;}
-
-  /* Category ledger */
-  .ledger{display:flex; flex-direction:column; gap:8px;}
-  .ledger-row{
-    background:var(--surface); border:1px solid var(--border); border-radius:10px;
-    padding:12px 14px; display:grid; grid-template-columns:16px 1fr auto; gap:12px; align-items:center;
-  }
-  .ledger-name{font-size:13px; font-weight:500;}
-  .ledger-bar{grid-column:1/-1; height:6px; background:var(--surface-2); border-radius:4px; overflow:hidden; margin-top:2px;}
-  .ledger-bar-fill{height:100%; border-radius:4px; transition:width .4s ease;}
-  .ledger-amt{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); text-align:right; white-space:nowrap;}
-
-  /* Charts */
-  .charts-grid{display:grid; grid-template-columns:1.4fr 1fr; gap:16px;}
-  @media(max-width:640px){.charts-grid{grid-template-columns:1fr;}}
-  .chart-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px;}
-
-  /* Table */
-  .table-wrap{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;}
-  .table-search{padding:12px 14px; border-bottom:1px solid var(--border);}
-  .table-search input{
-    width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
-    color:var(--text); padding:9px 12px; font-family:'Inter',sans-serif; font-size:13px;
-  }
-  table{width:100%; border-collapse:collapse; font-size:12.5px;}
-  th{text-align:left; color:var(--muted); font-weight:500; padding:10px 14px; font-size:11px; text-transform:uppercase; letter-spacing:.04em;}
-  td{padding:9px 14px; border-top:1px solid var(--border);}
-  td.amt{font-family:'JetBrains Mono',monospace; text-align:right;}
-  .tag{display:inline-block; padding:2px 8px; border-radius:20px; font-size:10.5px; background:var(--surface-2); color:var(--muted);}
-
-  /* Form */
-  .form-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px;}
-  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
-  @media(max-width:520px){.form-grid{grid-template-columns:1fr;}}
-  label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:5px;}
-  input,select{
-    width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
-    color:var(--text); padding:10px 12px; font-family:'Inter',sans-serif; font-size:13.5px;
-  }
-  .field{margin-bottom:12px;}
-  button{
-    background:var(--blue); color:#0F1620; border:none; border-radius:8px; padding:11px 18px;
-    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px; cursor:pointer; width:100%;
-    margin-top:4px;
-  }
-  button:hover{opacity:.9;}
-  button:disabled{opacity:.5; cursor:default;}
-  .form-msg{font-size:12.5px; margin-top:10px; min-height:16px;}
-  .form-msg.ok{color:var(--green);}
-  .form-msg.err{color:var(--red);}
-
-  footer{margin-top:48px; text-align:center; color:var(--muted); font-size:11px;}
-</style>
-</head>
-<body>
-<div class="wrap">
-
-  <header>
-    <div class="eyebrow">Control Gastos · <span id="mesLabel">—</span></div>
-    <h1>Cómo va el mes</h1>
-    <div class="hero">
-      <div class="hero-card">
-        <div class="hero-label">Gasto real del mes</div>
-        <div class="hero-value mono" id="heroGasto">$0</div>
-        <div class="hero-sub" id="heroGastoSub">calculando…</div>
-      </div>
-      <div class="hero-card">
-        <div class="hero-label">Ahorro / inversión del mes</div>
-        <div class="hero-value mono" id="heroAhorro">$0</div>
-        <div class="hero-sub" id="heroAhorroSub">calculando…</div>
-      </div>
-    </div>
-  </header>
-
-  <section>
-    <div class="section-title">Categorías <span class="n" id="ledgerCount"></span></div>
-    <div class="ledger" id="ledger"><div style="color:var(--muted); font-size:13px;">Cargando…</div></div>
-  </section>
-
-  <section>
-    <div class="section-title">Tendencia y distribución</div>
-    <div class="charts-grid">
-      <div class="chart-card"><canvas id="chartTendencia" height="220"></canvas></div>
-      <div class="chart-card"><canvas id="chartDona" height="220"></canvas></div>
-    </div>
-  </section>
-
-  <section>
-    <div class="section-title">Registrar movimiento</div>
-    <div class="form-card">
-      <div class="form-grid">
-        <div class="field">
-          <label>Tipo</label>
-          <select id="fTipo">
-            <option value="Gasto">Gasto</option>
-            <option value="Ingreso">Ingreso</option>
-            <option value="Ahorro">Ahorro</option>
-            <option value="Traspaso">Traspaso</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Monto (CLP)</label>
-          <input type="number" id="fMonto" placeholder="8500">
-        </div>
-      </div>
-      <div class="field" id="fCategoriaWrap">
-        <label>Categoría</label>
-        <select id="fCategoria"></select>
-      </div>
-      <div class="field">
-        <label>Descripción</label>
-        <input type="text" id="fDescripcion" placeholder="Ej: almuerzo con amigos">
-      </div>
-      <button id="fSubmit">Registrar</button>
-      <div class="form-msg" id="fMsg"></div>
-    </div>
-  </section>
-
-  <section>
-    <div class="section-title">Movimientos recientes</div>
-    <div class="table-wrap">
-      <div class="table-search"><input type="text" id="buscador" placeholder="Buscar por comercio o categoría…"></div>
-      <table>
-        <thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Comercio</th><th style="text-align:right;">Monto</th></tr></thead>
-        <tbody id="tablaBody"><tr><td colspan="5" style="color:var(--muted);">Cargando…</td></tr></tbody>
-      </table>
-    </div>
-  </section>
-
-  <footer>Actualizado en vivo desde tu Google Sheet · datos personales</footer>
-</div>
-
-<script>
-const CSV_MOVIMIENTOS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLfN2qjT0gT6YQloWSrSyJ4eJgZtF1LnCXEjDMZlOlwz_72G0L8lTHNOZmnepcCq3k2dvX7WJ5upLx/pub?gid=0&single=true&output=csv';
-const CSV_TOPES = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLfN2qjT0gT6YQloWSrSyJ4eJgZtF1LnCXEjDMZlOlwz_72G0L8lTHNOZmnepcCq3k2dvX7WJ5upLx/pub?gid=1363525202&single=true&output=csv';
-const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbxvN2rvCP5jt7xWkcpEsHjokcMoUGFuWsNncUs26oqdAmfrTR_t-MtkYn8TsUz-9pVyjw/exec';
+const TELEGRAM_TOKEN = '8820131505:AAFejUczLroxz7U6mnmpigtDW_XbM-g1QtA';
+const CHAT_ID_AUTORIZADO = '7723878082';
 const DASHBOARD_SECRET = 'scc-gastos-2026-x7f2';
 
-const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function revisarMensajesTelegram() {
+  const props = PropertiesService.getScriptProperties();
+  const offsetGuardado = Number(props.getProperty('TELEGRAM_OFFSET') || '0');
 
-function fmt(n){ return '$' + Math.round(Number(n)||0).toLocaleString('es-CL'); }
+  const url = 'https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/getUpdates?offset=' + (offsetGuardado + 1) + '&timeout=0';
+  const respuesta = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  const data = JSON.parse(respuesta.getContentText());
 
-function parseFecha(str){
-  if(!str) return null;
-  const m = String(str).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-  if(!m) return null;
-  return new Date(Number(m[3]), Number(m[2])-1, Number(m[1]));
-}
+  if (!data.ok) {
+    registrarDebug_('Error en getUpdates: ' + respuesta.getContentText());
+    return;
+  }
 
-function cargarCSV(url){
-  return new Promise((resolve) => {
-    Papa.parse(url, { download:true, header:true, skipEmptyLines:true, complete: r => resolve(r.data) });
+  let nuevoOffset = offsetGuardado;
+  data.result.forEach(function (update) {
+    nuevoOffset = update.update_id;
+    try {
+      if (update.message) {
+        manejarMensaje_(update.message);
+      } else if (update.callback_query) {
+        manejarCallback_(update.callback_query);
+      }
+    } catch (err) {
+      registrarDebug_('Error procesando update ' + update.update_id + ': ' + err);
+    }
   });
+
+  if (nuevoOffset !== offsetGuardado) {
+    props.setProperty('TELEGRAM_OFFSET', String(nuevoOffset));
+  }
 }
 
-Promise.all([cargarCSV(CSV_MOVIMIENTOS), cargarCSV(CSV_TOPES)]).then(([movs, topesRaw]) => {
+function doPost(e) {
+  registrarDebug_('doPost recibido: ' + (e && e.postData ? e.postData.contents.substring(0, 300) : 'sin datos'));
+  try {
+    const data = JSON.parse(e.postData.contents);
+
+    // Petición desde el dashboard (formulario de carga rápida)
+    if (data.accion === 'registrar') {
+      return manejarRegistroDashboard_(data);
+    }
+
+    const updateId = data.update_id;
+
+    if (updateId) {
+      let yaProcesado = false;
+      try {
+        const lock = LockService.getScriptLock();
+        lock.waitLock(3000);
+        try {
+          yaProcesado = yaProcesadoUpdate_(updateId);
+          if (!yaProcesado) marcarUpdateProcesado_(updateId);
+        } finally {
+          lock.releaseLock();
+        }
+      } catch (lockErr) {
+        registrarDebug_('Lock no disponible, sigo sin bloqueo: ' + lockErr);
+        yaProcesado = yaProcesadoUpdate_(updateId);
+        if (!yaProcesado) marcarUpdateProcesado_(updateId);
+      }
+      if (yaProcesado) {
+        registrarDebug_('Update ' + updateId + ' ya procesado, se ignora.');
+        return ContentService.createTextOutput('OK');
+      }
+    }
+
+    if (data.message) {
+      manejarMensaje_(data.message);
+    } else if (data.callback_query) {
+      manejarCallback_(data.callback_query);
+    }
+  } catch (err) {
+    registrarDebug_('ERROR en doPost: ' + err);
+  }
+  return ContentService.createTextOutput('OK');
+}
+
+function registrarDebug_(texto) {
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let hoja = ss.getSheetByName('Debug_Bot');
+    if (!hoja) {
+      hoja = ss.insertSheet('Debug_Bot');
+      hoja.appendRow(['Fecha', 'Evento']);
+    }
+    hoja.appendRow([new Date(), texto]);
+  } catch (err) {
+    // si falla el log, no hacemos nada más para no romper el flujo principal
+  }
+}
+
+function manejarRegistroDashboard_(data) {
+  const salida = ContentService.createTextOutput();
+  salida.setMimeType(ContentService.MimeType.JSON);
+
+  if (data.secreto !== DASHBOARD_SECRET) {
+    salida.setContent(JSON.stringify({ ok: false, error: 'No autorizado' }));
+    return salida;
+  }
+
+  const tipo = data.tipo;
+  const monto = parseInt(data.monto, 10);
+  const categoria = data.categoria || '';
+  const descripcion = data.descripcion || '';
+
+  if (!tipo || !monto || isNaN(monto)) {
+    salida.setContent(JSON.stringify({ ok: false, error: 'Datos incompletos' }));
+    return salida;
+  }
+
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const hojaMov = ss.getSheetByName('Movimientos');
+  const fila = [
+    Utilities.getUuid().slice(0, 8),
+    Utilities.formatDate(new Date(), 'America/Santiago', 'dd/MM/yyyy'),
+    tipo, monto, categoria, 'Manual', '', descripcion || tipo, 'Dashboard', 'Confirmado', ''
+  ];
+  hojaMov.appendRow(fila);
+
+  const emoji = tipo === 'Gasto' ? '💸' : (tipo === 'Ingreso' ? '💰' : (tipo === 'Ahorro' ? '🏦' : '🔁'));
+  enviarMensaje_(CHAT_ID_AUTORIZADO, emoji + ' Registrado desde el dashboard: *' + tipo + '* $' + formatearMonto_(monto) +
+    (categoria ? ' (' + categoria + ')' : '') + (descripcion ? '\n' + descripcion : ''));
+
+  salida.setContent(JSON.stringify({ ok: true }));
+  return salida;
+}
+
+function yaProcesadoUpdate_(updateId) {
+  const cache = CacheService.getScriptCache();
+  return cache.get('upd_' + updateId) !== null;
+}
+
+function marcarUpdateProcesado_(updateId) {
+  const cache = CacheService.getScriptCache();
+  cache.put('upd_' + updateId, '1', 3600); // recuerda por 1 hora
+}
+
+// ============ RUTEO DE COMANDOS ============
+
+function manejarMensaje_(msg) {
+  const chatId = msg.chat.id;
+  if (String(chatId) !== CHAT_ID_AUTORIZADO) {
+    enviarMensaje_(chatId, '🔒 No autorizado.');
+    return;
+  }
+  const texto = (msg.text || '').trim();
+
+  if (texto === '/start') return cmdStart_(chatId);
+  if (texto === '/ayuda') return cmdAyuda_(chatId);
+  if (texto.indexOf('/gasto') === 0) return cmdRegistroManual_(chatId, texto, 'Gasto');
+  if (texto.indexOf('/ingreso') === 0) return cmdRegistroManual_(chatId, texto, 'Ingreso');
+  if (texto.indexOf('/traspaso') === 0) return cmdRegistroManual_(chatId, texto, 'Traspaso');
+  if (texto === '/pendientes') return cmdPendientes_(chatId);
+  if (texto === '/resumen') return cmdResumen_(chatId);
+  if (texto === '/topes') return cmdTopes_(chatId);
+  if (texto.indexOf('/buscar') === 0) return cmdBuscar_(chatId, texto);
+
+  enviarMensaje_(chatId, 'No reconozco ese comando 🤔. Escribe /ayuda para ver la lista.');
+}
+
+function cmdStart_(chatId) {
+  enviarMensaje_(chatId, '👋 Hola, soy tu bot de Control de Gastos.\n\nEscribe /ayuda para ver todo lo que puedo hacer.');
+}
+
+function cmdAyuda_(chatId) {
+  const texto =
+    '📋 *Comandos disponibles:*\n\n' +
+    '/gasto <monto> <categoría> <descripción> — registra un gasto\n' +
+    'Ej: /gasto 8500 restaurantes almuerzo\n\n' +
+    '/ingreso <monto> <descripción> — registra un ingreso\n' +
+    'Ej: /ingreso 300000 sueldo\n\n' +
+    '/traspaso <monto> <descripción> — registra un traspaso entre tus cuentas\n' +
+    'Ej: /traspaso 50000 de falabella a bci\n\n' +
+    '/pendientes — muestra el próximo pendiente por clasificar, con botones\n\n' +
+    '/resumen — total del mes por categoría, con semáforo de topes\n\n' +
+    '/topes — lista tus topes actuales y cuánto llevas gastado\n\n' +
+    '/buscar <palabra> — busca movimientos por texto\n' +
+    'Ej: /buscar uber';
+  enviarMensaje_(chatId, texto);
+}
+
+// ============ REGISTRO MANUAL ============
+
+function cmdRegistroManual_(chatId, texto, tipo) {
+  // Formatos:
+  // /gasto 8500 restaurantes almuerzo con amigos
+  // /ingreso 300000 sueldo agosto
+  // /traspaso 50000 de falabella a bci
+  const partes = texto.split(' ').filter(function (p) { return p !== ''; });
+  partes.shift(); // saca el comando
+  if (partes.length < 1 || isNaN(parseInt(partes[0], 10))) {
+    enviarMensaje_(chatId, '⚠️ Formato: /' + tipo.toLowerCase() + ' <monto> <categoría o descripción>\nEj: /gasto 8500 restaurantes almuerzo');
+    return;
+  }
+  const monto = parseInt(partes[0].replace(/\./g, ''), 10);
+
+  let categoria = '';
+  let descripcion = '';
+
+  if (tipo === 'Gasto') {
+    const categorias = obtenerCategorias_();
+    const posibleCategoria = (partes[1] || '').toLowerCase();
+    const match = categorias.filter(function (c) { return c.toLowerCase() === posibleCategoria; });
+    if (match.length > 0) {
+      categoria = match[0];
+      descripcion = partes.slice(2).join(' ');
+    } else {
+      descripcion = partes.slice(1).join(' ');
+      categoria = ''; // queda sin categoría, se puede resolver luego desde el Sheet
+    }
+  } else {
+    descripcion = partes.slice(1).join(' ');
+  }
+
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const hojaMov = ss.getSheetByName('Movimientos');
+  const fila = [
+    Utilities.getUuid().slice(0, 8),
+    Utilities.formatDate(new Date(), 'America/Santiago', 'dd/MM/yyyy'),
+    tipo, monto, categoria, 'Manual', '', descripcion || tipo, 'Telegram', 'Confirmado', ''
+  ];
+  hojaMov.appendRow(fila);
+
+  const emoji = tipo === 'Gasto' ? '💸' : (tipo === 'Ingreso' ? '💰' : '🔁');
+  enviarMensaje_(chatId, emoji + ' Registrado: *' + tipo + '* $' + formatearMonto_(monto) +
+    (categoria ? ' (' + categoria + ')' : '') + (descripcion ? '\n' + descripcion : ''));
+}
+
+// ============ PENDIENTES ============
+
+function cmdPendientes_(chatId) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const hojaPend = ss.getSheetByName('Pendientes');
+  const datos = hojaPend.getDataRange().getValues();
+
+  if (datos.length < 2) {
+    enviarMensaje_(chatId, '✅ No tienes pendientes por clasificar.');
+    return;
+  }
+
+  const fila = datos[1]; // primera fila de datos (después del header)
+  const monto = fila[3];
+  const comercio = fila[7];
+  const fecha = fila[1];
+
+  const categorias = obtenerCategorias_();
+  const botones = [];
+  for (let i = 0; i < categorias.length; i += 2) {
+    const par = [{ text: categorias[i], callback_data: 'pend:' + categorias[i] }];
+    if (categorias[i + 1]) par.push({ text: categorias[i + 1], callback_data: 'pend:' + categorias[i + 1] });
+    botones.push(par);
+  }
+  botones.push([
+    { text: '🔁 Es un Traspaso', callback_data: 'pend:__TRASPASO__' },
+    { text: '🗑️ Eliminar', callback_data: 'pend:__ELIMINAR__' }
+  ]);
+
+  const texto = '📥 *Pendiente por clasificar:*\n\n' +
+    '💵 Monto: $' + formatearMonto_(monto) + '\n' +
+    '🏪 Comercio: ' + comercio + '\n' +
+    '📅 Fecha: ' + fecha + '\n\n' +
+    '¿En qué categoría va?';
+
+  enviarMensaje_(chatId, texto, { inline_keyboard: botones });
+}
+
+function manejarCallback_(callback) {
+  const chatId = callback.message.chat.id;
+  const data = callback.data;
+  responderCallback_(callback.id);
+
+  if (String(chatId) !== CHAT_ID_AUTORIZADO) return;
+  if (data.indexOf('pend:') !== 0) return;
+
+  const eleccion = data.substring(5);
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const hojaPend = ss.getSheetByName('Pendientes');
+  const hojaMov = ss.getSheetByName('Movimientos');
+  const datos = hojaPend.getDataRange().getValues();
+
+  if (datos.length < 2) {
+    enviarMensaje_(chatId, 'Ese pendiente ya no existe (puede que lo hayas resuelto antes).');
+    return;
+  }
+
+  const fila = datos[1].slice(0, 11); // columnas ID..Notas, descarta Motivo_Duda
+  const comercio = fila[7];
+
+  if (eleccion === '__ELIMINAR__') {
+    hojaPend.deleteRow(2);
+    enviarMensaje_(chatId, '🗑️ Pendiente eliminado.');
+  } else if (eleccion === '__TRASPASO__') {
+    fila[2] = 'Traspaso';
+    fila[4] = '';
+    fila[9] = 'Confirmado';
+    hojaMov.appendRow(fila);
+    hojaPend.deleteRow(2);
+    enviarMensaje_(chatId, '🔁 Marcado como Traspaso y movido a Movimientos.');
+  } else {
+    fila[4] = eleccion;
+    fila[9] = 'Confirmado';
+    hojaMov.appendRow(fila);
+    hojaPend.deleteRow(2);
+    guardarReglaAprendida_(ss, comercio, eleccion);
+    enviarMensaje_(chatId, '✅ Clasificado como *' + eleccion + '* y movido a Movimientos.\n📚 Aprendí que "' + comercio + '" es ' + eleccion + ' para la próxima vez.');
+  }
+
+  // Si queda otro pendiente, lo muestra automáticamente
+  const quedan = hojaPend.getDataRange().getValues().length - 1;
+  if (quedan > 0) {
+    cmdPendientes_(chatId);
+  }
+}
+
+function guardarReglaAprendida_(ss, comercio, categoria) {
+  let hoja = ss.getSheetByName('Reglas_Aprendidas');
+  if (!hoja) {
+    hoja = ss.insertSheet('Reglas_Aprendidas');
+    hoja.appendRow(['Comercio', 'Categoria', 'Fecha_Aprendida']);
+  }
+  hoja.appendRow([String(comercio).toUpperCase(), categoria, new Date()]);
+}
+
+// ============ RESUMEN Y TOPES ============
+
+function cmdResumen_(chatId) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const hojaMov = ss.getSheetByName('Movimientos');
+  const datos = hojaMov.getDataRange().getValues();
   const hoy = new Date();
-  MESES_LABEL(hoy);
+  const mesActual = hoy.getMonth();
+  const anioActual = hoy.getFullYear();
 
-  const topes = {};
-  const tiposTope = {};
-  topesRaw.forEach(r => {
-    const cat = (r['Categoría']||'').trim();
-    if(!cat) return;
-    topes[cat] = Number(r['Tope_Mensual']) || 0;
-    tiposTope[cat] = (r['Tipo_Tope']||'').trim();
-  });
-
-  movs.forEach(m => { m._fecha = parseFecha(m['Fecha']); m._monto = Number(m['Monto']) || 0; });
-
-  const delMes = movs.filter(m => m._fecha && m._fecha.getMonth()===hoy.getMonth() && m._fecha.getFullYear()===hoy.getFullYear());
-
-  // Hero
-  const totalGasto = delMes.filter(m=>m['Tipo']==='Gasto').reduce((a,m)=>a+m._monto,0);
-  const totalAhorro = delMes.filter(m=>m['Tipo']==='Ahorro').reduce((a,m)=>a+m._monto,0);
-  document.getElementById('heroGasto').textContent = fmt(totalGasto);
-  document.getElementById('heroAhorro').textContent = fmt(totalAhorro);
-  const metaAhorro = topes['Ahorro/Inversion'] || 0;
-  document.getElementById('heroGastoSub').textContent = delMes.filter(m=>m['Tipo']==='Gasto').length + ' movimientos este mes';
-  document.getElementById('heroAhorroSub').textContent = metaAhorro ? ('Meta: ' + fmt(metaAhorro) + (totalAhorro>=metaAhorro ? ' · cumplida ✓' : '')) : '';
-
-  // Ledger por categoría
-  const totalesCat = {};
-  delMes.filter(m=>m['Tipo']==='Gasto').forEach(m=>{
-    const c = (m['Categoría']||'Sin categoría').trim();
-    totalesCat[c] = (totalesCat[c]||0) + m._monto;
-  });
-
-  const ledger = document.getElementById('ledger');
-  ledger.innerHTML = '';
-  const categoriasOrdenadas = Object.keys(topes)
-    .filter(c => tiposTope[c] !== 'Sin tope' || totalesCat[c])
-    .sort((a,b) => (totalesCat[b]||0) - (totalesCat[a]||0));
-
-  categoriasOrdenadas.forEach(cat => {
-    const gastado = totalesCat[cat] || 0;
-    const tope = topes[cat] || 0;
-    const pct = tope > 0 ? gastado/tope : 0;
-    let color = 'var(--green)';
-    if(tope > 0 && pct >= 1) color = 'var(--red)';
-    else if(tope > 0 && pct >= 0.8) color = 'var(--amber)';
-    if(tiposTope[cat] === 'Meta mínima') color = gastado >= tope ? 'var(--green)' : 'var(--blue)';
-
-    const row = document.createElement('div');
-    row.className = 'ledger-row';
-    row.innerHTML = `
-      <span class="signal" style="background:${color}"></span>
-      <span class="ledger-name">${cat}</span>
-      <span class="ledger-amt">${fmt(gastado)}${tope ? ' / ' + fmt(tope) : ''}</span>
-      <div class="ledger-bar"><div class="ledger-bar-fill" style="width:${Math.min(pct*100,100)}%; background:${color}"></div></div>
-    `;
-    ledger.appendChild(row);
-  });
-  document.getElementById('ledgerCount').textContent = categoriasOrdenadas.length + ' categorías';
-
-  // Chart tendencia (últimos 6 meses)
-  const mesesAtras = [];
-  for(let i=5;i>=0;i--){
-    const d = new Date(hoy.getFullYear(), hoy.getMonth()-i, 1);
-    mesesAtras.push(d);
+  const totales = {};
+  for (let i = 1; i < datos.length; i++) {
+    const fila = datos[i];
+    const tipo = fila[2];
+    if (tipo !== 'Gasto') continue;
+    const fecha = parsearFecha_(fila[1]);
+    if (!fecha || fecha.getMonth() !== mesActual || fecha.getFullYear() !== anioActual) continue;
+    const cat = fila[4] || 'Sin categoría';
+    totales[cat] = (totales[cat] || 0) + Number(fila[3]);
   }
-  const totalesPorMes = mesesAtras.map(d => {
-    return movs.filter(m => m['Tipo']==='Gasto' && m._fecha && m._fecha.getMonth()===d.getMonth() && m._fecha.getFullYear()===d.getFullYear())
-      .reduce((a,m)=>a+m._monto,0);
-  });
 
-  new Chart(document.getElementById('chartTendencia'), {
-    type:'line',
-    data:{
-      labels: mesesAtras.map(d => MESES[d.getMonth()].substring(0,3)),
-      datasets:[{ data: totalesPorMes, borderColor:'#6C8EEF', backgroundColor:'rgba(108,142,239,.15)', fill:true, tension:.35, pointRadius:3, pointBackgroundColor:'#6C8EEF' }]
-    },
-    options:{
-      plugins:{legend:{display:false}, title:{display:true, text:'Gasto mensual (últimos 6 meses)', color:'#8A97A6', font:{family:'Inter',size:11}}},
-      scales:{
-        x:{ ticks:{color:'#8A97A6', font:{family:'Inter',size:11}}, grid:{color:'#2A3A4D'} },
-        y:{ ticks:{color:'#8A97A6', font:{family:'JetBrains Mono',size:10}, callback:v=>'$'+(v/1000)+'k'}, grid:{color:'#2A3A4D'} }
-      }
+  const topes = obtenerTopes_();
+  let texto = '📊 *Resumen del mes:*\n\n';
+  let totalGeneral = 0;
+  Object.keys(totales).sort(function (a, b) { return totales[b] - totales[a]; }).forEach(function (cat) {
+    const gastado = totales[cat];
+    totalGeneral += gastado;
+    const tope = topes[cat];
+    let emoji = '⚪';
+    if (tope && tope > 0) {
+      const pct = gastado / tope;
+      emoji = pct >= 1 ? '🔴' : (pct >= 0.8 ? '🟡' : '🟢');
     }
+    texto += emoji + ' ' + cat + ': $' + formatearMonto_(gastado) + (tope ? ' / $' + formatearMonto_(tope) : '') + '\n';
   });
+  texto += '\n💰 *Total gastado:* $' + formatearMonto_(totalGeneral);
 
-  // Dona por categoría (mes actual)
-  const catsTop = Object.entries(totalesCat).sort((a,b)=>b[1]-a[1]).slice(0,7);
-  new Chart(document.getElementById('chartDona'), {
-    type:'doughnut',
-    data:{
-      labels: catsTop.map(c=>c[0]),
-      datasets:[{ data: catsTop.map(c=>c[1]), backgroundColor:['#6C8EEF','#4ADE94','#F5B942','#F0654E','#9D7BD8','#4FC3D9','#E39BB8'], borderColor:'#172230', borderWidth:2 }]
-    },
-    options:{
-      plugins:{
-        legend:{position:'bottom', labels:{color:'#8A97A6', font:{family:'Inter',size:10.5}, boxWidth:10}},
-        title:{display:true, text:'Distribución del mes', color:'#8A97A6', font:{family:'Inter',size:11}}
-      }
-    }
-  });
-
-  // Tabla
-  const recientes = movs.filter(m=>m._fecha).sort((a,b)=>b._fecha-a._fecha).slice(0,40);
-  function pintarTabla(filtro){
-    const tbody = document.getElementById('tablaBody');
-    const f = (filtro||'').toLowerCase();
-    const filtrados = recientes.filter(m => !f ||
-      (m['Comercio_Descripción']||'').toLowerCase().includes(f) ||
-      (m['Categoría']||'').toLowerCase().includes(f));
-    tbody.innerHTML = filtrados.length ? '' : '<tr><td colspan="5" style="color:var(--muted);">Sin resultados</td></tr>';
-    filtrados.forEach(m => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${m['Fecha']||''}</td><td><span class="tag">${m['Tipo']||''}</span></td><td>${m['Categoría']||'—'}</td><td>${m['Comercio_Descripción']||''}</td><td class="amt">${fmt(m._monto)}</td>`;
-      tbody.appendChild(tr);
-    });
-  }
-  pintarTabla('');
-  document.getElementById('buscador').addEventListener('input', e => pintarTabla(e.target.value));
-
-  // Formulario: poblar categorías
-  const fCategoria = document.getElementById('fCategoria');
-  Object.keys(topes).forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c; opt.textContent = c;
-    fCategoria.appendChild(opt);
-  });
-
-  const fTipo = document.getElementById('fTipo');
-  const fCategoriaWrap = document.getElementById('fCategoriaWrap');
-  function actualizarVisibilidadCategoria(){
-    fCategoriaWrap.style.display = (fTipo.value === 'Gasto' || fTipo.value === 'Ahorro') ? 'block' : 'none';
-  }
-  fTipo.addEventListener('change', actualizarVisibilidadCategoria);
-  actualizarVisibilidadCategoria();
-
-  document.getElementById('fSubmit').addEventListener('click', () => {
-    const btn = document.getElementById('fSubmit');
-    const msg = document.getElementById('fMsg');
-    const monto = document.getElementById('fMonto').value;
-    if(!monto || Number(monto) <= 0){
-      msg.textContent = 'Ingresa un monto válido.'; msg.className = 'form-msg err'; return;
-    }
-    btn.disabled = true; msg.textContent = 'Registrando…'; msg.className = 'form-msg';
-    fetch(WEBAPP_URL, {
-      method:'POST',
-      body: JSON.stringify({
-        accion:'registrar', secreto: DASHBOARD_SECRET,
-        tipo: fTipo.value, monto: monto,
-        categoria: (fTipo.value==='Gasto'||fTipo.value==='Ahorro') ? fCategoria.value : '',
-        descripcion: document.getElementById('fDescripcion').value
-      })
-    }).then(r => r.json()).then(r => {
-      btn.disabled = false;
-      if(r.ok){
-        msg.textContent = '✅ Registrado. Se reflejará al recargar la página.'; msg.className = 'form-msg ok';
-        document.getElementById('fMonto').value = ''; document.getElementById('fDescripcion').value = '';
-      } else {
-        msg.textContent = '⚠️ ' + (r.error||'Error al registrar.'); msg.className = 'form-msg err';
-      }
-    }).catch(() => {
-      btn.disabled = false;
-      msg.textContent = '⚠️ No se pudo conectar. Puedes registrar por Telegram mientras revisamos esto.';
-      msg.className = 'form-msg err';
-    });
-  });
-
-}).catch(err => {
-  document.getElementById('ledger').innerHTML = '<div style="color:var(--red); font-size:13px;">No se pudieron cargar los datos. Revisa que el Sheet siga publicado.</div>';
-  console.error(err);
-});
-
-function MESES_LABEL(hoy){
-  document.getElementById('mesLabel').textContent = MESES[hoy.getMonth()] + ' ' + hoy.getFullYear();
+  enviarMensaje_(chatId, texto);
 }
-</script>
-</body>
-</html>
+
+function cmdTopes_(chatId) {
+  cmdResumen_(chatId); // mismo cálculo, ya incluye topes en la vista
+}
+
+function cmdBuscar_(chatId, texto) {
+  const palabra = texto.replace('/buscar', '').trim().toLowerCase();
+  if (!palabra) {
+    enviarMensaje_(chatId, '⚠️ Formato: /buscar <palabra>');
+    return;
+  }
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const datos = ss.getSheetByName('Movimientos').getDataRange().getValues();
+  const resultados = [];
+  for (let i = datos.length - 1; i >= 1 && resultados.length < 5; i--) {
+    const fila = datos[i];
+    if (String(fila[7]).toLowerCase().indexOf(palabra) !== -1) {
+      resultados.push('• ' + fila[1] + ' — $' + formatearMonto_(fila[3]) + ' — ' + fila[7] + ' (' + (fila[4] || 'sin categoría') + ')');
+    }
+  }
+  enviarMensaje_(chatId, resultados.length > 0
+    ? ('🔍 Últimos resultados para "' + palabra + '":\n\n' + resultados.join('\n'))
+    : ('Sin resultados para "' + palabra + '".'));
+}
+
+// ============ UTILIDADES ============
+
+function obtenerCategorias_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const datos = ss.getSheetByName('Categorías_Topes').getDataRange().getValues();
+  const categorias = [];
+  for (let i = 1; i < datos.length; i++) {
+    if (datos[i][0]) categorias.push(String(datos[i][0]));
+  }
+  return categorias;
+}
+
+function obtenerTopes_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const datos = ss.getSheetByName('Categorías_Topes').getDataRange().getValues();
+  const topes = {};
+  for (let i = 1; i < datos.length; i++) {
+    if (datos[i][0]) topes[String(datos[i][0])] = Number(datos[i][3]) || 0;
+  }
+  return topes;
+}
+
+function parsearFecha_(valor) {
+  if (valor instanceof Date) return valor;
+  const texto = String(valor).trim();
+  let m = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); // ISO: 2026-01-15
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  m = texto.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/); // 15/01/2026 o 15-01-2026
+  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  return null;
+}
+
+function formatearMonto_(monto) {
+  return Number(monto).toLocaleString('es-CL');
+}
+
+function enviarMensaje_(chatId, texto, teclado) {
+  const payload = {
+    chat_id: chatId,
+    text: texto,
+    parse_mode: 'Markdown'
+  };
+  if (teclado) payload.reply_markup = JSON.stringify(teclado);
+  const respuesta = UrlFetchApp.fetch('https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/sendMessage', {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  Logger.log('Respuesta de Telegram (sendMessage): ' + respuesta.getContentText());
+}
+
+function responderCallback_(callbackQueryId) {
+  UrlFetchApp.fetch('https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/answerCallbackQuery', {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({ callback_query_id: callbackQueryId }),
+    muteHttpExceptions: true
+  });
+}
+
+function pruebaEnviarDirecto() {
+  enviarMensaje_(CHAT_ID_AUTORIZADO, '✅ Prueba manual funcionando');
+}
