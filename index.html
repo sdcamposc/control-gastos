@@ -116,6 +116,10 @@
   td{padding:9px 14px; border-top:1px solid var(--border);}
   td.amt{font-family:'JetBrains Mono',monospace; text-align:right;}
   .tag{display:inline-block; padding:2px 8px; border-radius:20px; font-size:10.5px; background:var(--surface-2); color:var(--muted);}
+  .tag-gasto{color:var(--red); background:rgba(240,101,78,.14);}
+  .tag-ingreso{color:var(--green); background:rgba(74,222,148,.14);}
+  .tag-traspaso{color:var(--text); background:rgba(237,239,242,.12);}
+  .tag-ahorro{color:var(--blue); background:rgba(108,142,239,.14);}
 
   /* Form */
   .form-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px;}
@@ -583,7 +587,11 @@ function pintarTabla(lista, filtro){
   tbody.innerHTML = filtrados.length ? '' : '<tr><td colspan="5" style="color:var(--muted);">Sin resultados</td></tr>';
   filtrados.forEach(m => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${m['Fecha']||''}</td><td><span class="tag">${m['Tipo']||''}</span></td><td>${m['Categoría']||'—'}</td><td>${m['Comercio_Descripción']||''}</td><td class="amt">${fmt(m._monto)}</td>`;
+    const tipo = m['Tipo'] || '';
+    const claseTag = 'tag ' + (tipo === 'Gasto' ? 'tag-gasto' : tipo === 'Ingreso' ? 'tag-ingreso' : tipo === 'Traspaso' ? 'tag-traspaso' : tipo === 'Ahorro' ? 'tag-ahorro' : '');
+    const cat = (m['Categoría']||'').trim();
+    const catConEmoji = cat ? ((ICONOS_CAT[cat] || '') + ' ' + cat) : '—';
+    tr.innerHTML = `<td>${m['Fecha']||''}</td><td><span class="${claseTag}">${tipo}</span></td><td>${catConEmoji}</td><td>${m['Comercio_Descripción']||''}</td><td class="amt">${fmt(m._monto)}</td>`;
     tbody.appendChild(tr);
   });
 }
