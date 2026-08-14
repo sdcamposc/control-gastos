@@ -41,10 +41,25 @@
     width:auto; background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
     color:var(--text); padding:8px 12px; font-family:'Inter',sans-serif; font-size:13px;
   }
-  .hero{
-    display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:18px;
+  .hero,.hero-card,.hero-label,.hero-value,.hero-sub{ } /* legacy, no usados */
+  .franja{
+    display:grid; grid-template-columns:repeat(4,1fr);
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    margin-top:18px; overflow:hidden;
   }
-  @media(max-width:520px){.hero{grid-template-columns:1fr;}}
+  @media(max-width:640px){.franja{grid-template-columns:1fr 1fr;}}
+  .franja-item{
+    padding:16px 18px; border-left:1px solid var(--border);
+  }
+  .franja-item:first-child, .franja-item:nth-child(3){border-left:none;}
+  @media(max-width:640px){ .franja-item:nth-child(3){border-left:1px solid var(--border);} .franja-item:nth-child(odd){border-left:none;} }
+  .franja-top{display:flex; align-items:center; gap:7px; color:var(--muted); margin-bottom:6px;}
+  .franja-label{font-size:12px; text-transform:uppercase; letter-spacing:.06em;}
+  .ico{width:15px; height:15px; display:inline-flex;}
+  .ico svg{width:100%; height:100%;}
+  .franja-value{font-size:22px; font-weight:700;}
+  .franja-sub{font-size:11px; color:var(--muted); margin-top:4px; min-height:14px;}
+  .spark{margin-top:8px; opacity:.85;}
   .delta{font-weight:600;}
   .delta.up{color:var(--red);}
   .delta.down{color:var(--green);}
@@ -124,26 +139,42 @@
       <h1>Cómo va el mes</h1>
       <select id="selectorMes"></select>
     </div>
-    <div class="hero">
-      <div class="hero-card">
-        <div class="hero-label">Gasto real</div>
-        <div class="hero-value mono" id="heroGasto">$0</div>
-        <div class="hero-sub" id="heroGastoSub">calculando…</div>
+    <div class="franja">
+      <div class="franja-item">
+        <div class="franja-top">
+          <span class="ico" id="icoGasto"></span>
+          <span class="franja-label">Gasto</span>
+        </div>
+        <div class="franja-value mono" id="heroGasto">$0</div>
+        <div class="franja-sub" id="heroGastoSub"></div>
+        <div class="spark" id="sparkGasto"></div>
       </div>
-      <div class="hero-card">
-        <div class="hero-label">Ingreso real</div>
-        <div class="hero-value mono" id="heroIngreso">$0</div>
-        <div class="hero-sub" id="heroIngresoSub">calculando…</div>
+      <div class="franja-item">
+        <div class="franja-top">
+          <span class="ico" id="icoIngreso"></span>
+          <span class="franja-label">Ingreso</span>
+        </div>
+        <div class="franja-value mono" id="heroIngreso">$0</div>
+        <div class="franja-sub" id="heroIngresoSub"></div>
+        <div class="spark" id="sparkIngreso"></div>
       </div>
-      <div class="hero-card">
-        <div class="hero-label">Neto del mes</div>
-        <div class="hero-value mono" id="heroNeto">$0</div>
-        <div class="hero-sub" id="heroNetoSub">ingreso − gasto</div>
+      <div class="franja-item">
+        <div class="franja-top">
+          <span class="ico" id="icoNeto"></span>
+          <span class="franja-label">Neto</span>
+        </div>
+        <div class="franja-value mono" id="heroNeto">$0</div>
+        <div class="franja-sub" id="heroNetoSub">ingreso − gasto</div>
+        <div class="spark" id="sparkNeto"></div>
       </div>
-      <div class="hero-card">
-        <div class="hero-label">Ahorro / inversión</div>
-        <div class="hero-value mono" id="heroAhorro">$0</div>
-        <div class="hero-sub" id="heroAhorroSub">calculando…</div>
+      <div class="franja-item">
+        <div class="franja-top">
+          <span class="ico" id="icoAhorro"></span>
+          <span class="franja-label">Ahorro</span>
+        </div>
+        <div class="franja-value mono" id="heroAhorro">$0</div>
+        <div class="franja-sub" id="heroAhorroSub"></div>
+        <div class="spark" id="sparkAhorro"></div>
       </div>
     </div>
   </header>
@@ -255,6 +286,36 @@ function cargarCSV(url){
   });
 }
 
+const ICONOS = {
+  gasto: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l10 10M15 6v9h-9"/></svg>',
+  ingreso: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l10-10M5 6h9v9"/></svg>',
+  neto: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h12M4 12h12"/></svg>',
+  ahorro: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12c0-3.3 2.7-6 6-6 2.2 0 4 1 5 2.6.6 0 1 .4 1 1v1c0 .6-.4 1-1 1l-1 2v1.4H12V15H8v1H6v-2c-1.2-.6-2-1.8-2-3z"/><circle cx="13" cy="8" r=".6" fill="currentColor" stroke="none"/></svg>'
+};
+
+function pintarIconos(){
+  document.getElementById('icoGasto').innerHTML = ICONOS.gasto;
+  document.getElementById('icoIngreso').innerHTML = ICONOS.ingreso;
+  document.getElementById('icoNeto').innerHTML = ICONOS.neto;
+  document.getElementById('icoAhorro').innerHTML = ICONOS.ahorro;
+}
+
+function sparklineSVG(values, color){
+  if(!values || values.length < 2) return '';
+  const w = 76, h = 24, pad = 2;
+  const max = Math.max.apply(null, values.concat([1]));
+  const min = Math.min.apply(null, values.concat([0]));
+  const range = (max - min) || 1;
+  const step = (w - pad*2) / (values.length - 1);
+  const pts = values.map((v,i) => {
+    const x = pad + i*step;
+    const y = h - pad - ((v - min)/range) * (h - pad*2);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">' +
+    '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
 let chartTendencia, chartDona;
 let TOPES = {}, TIPOS_TOPE = {}, MOVS = [];
 
@@ -270,6 +331,7 @@ Promise.all([cargarCSV(CSV_MOVIMIENTOS), cargarCSV(CSV_TOPES)]).then(([movs, top
 
   poblarSelectorMes();
   poblarFormulario();
+  pintarIconos();
 
   const hoy = new Date();
   renderMes(hoy.getFullYear(), hoy.getMonth());
@@ -335,11 +397,34 @@ function renderMes(anio, mesIdx){
 
   const neto = actual.ingreso - actual.gasto;
   document.getElementById('heroNeto').textContent = fmt(neto);
-  document.getElementById('heroNeto').style.color = neto >= 0 ? 'var(--green)' : 'var(--red)';
 
   document.getElementById('heroAhorro').textContent = fmt(actual.ahorro);
   const metaAhorro = TOPES['Ahorro/Inversion'] || 0;
   document.getElementById('heroAhorroSub').textContent = metaAhorro ? ('Meta: ' + fmt(metaAhorro) + (actual.ahorro>=metaAhorro ? ' · cumplida ✓' : '')) : '';
+
+  // Franja: últimos 6 meses para sparklines (incluye el mes seleccionado)
+  const seisMeses = [];
+  for(let i=5;i>=0;i--) seisMeses.push(new Date(anio, mesIdx-i, 1));
+  const serieGasto = seisMeses.map(d => totalesDeMes(d.getFullYear(), d.getMonth()).gasto);
+  const serieIngreso = seisMeses.map(d => totalesDeMes(d.getFullYear(), d.getMonth()).ingreso);
+  const serieAhorro = seisMeses.map(d => totalesDeMes(d.getFullYear(), d.getMonth()).ahorro);
+  const serieNeto = serieGasto.map((g,i) => serieIngreso[i] - g);
+
+  const totalTopeMaximo = Object.keys(TOPES).filter(c => TIPOS_TOPE[c] === 'Máximo').reduce((a,c)=>a+TOPES[c],0);
+  const colorGasto = totalTopeMaximo && actual.gasto >= totalTopeMaximo ? 'var(--red)' : (totalTopeMaximo && actual.gasto >= totalTopeMaximo*0.8 ? 'var(--amber)' : 'var(--text)');
+  const colorIngreso = actual.ingreso >= META_INGRESO_MENSUAL ? 'var(--green)' : (actual.ingreso >= META_INGRESO_MENSUAL*0.8 ? 'var(--amber)' : 'var(--red)');
+  const colorNeto = neto >= 0 ? 'var(--green)' : 'var(--red)';
+  const colorAhorroTxt = metaAhorro && actual.ahorro >= metaAhorro ? 'var(--green)' : 'var(--text)';
+
+  document.getElementById('heroGasto').style.color = colorGasto;
+  document.getElementById('heroIngreso').style.color = colorIngreso;
+  document.getElementById('heroNeto').style.color = colorNeto;
+  document.getElementById('heroAhorro').style.color = colorAhorroTxt;
+
+  document.getElementById('sparkGasto').innerHTML = sparklineSVG(serieGasto, colorGasto === 'var(--text)' ? '#8A97A6' : colorGasto);
+  document.getElementById('sparkIngreso').innerHTML = sparklineSVG(serieIngreso, colorIngreso);
+  document.getElementById('sparkNeto').innerHTML = sparklineSVG(serieNeto, colorNeto);
+  document.getElementById('sparkAhorro').innerHTML = sparklineSVG(serieAhorro, '#6C8EEF');
 
   // Ledger
   const ledger = document.getElementById('ledger');
