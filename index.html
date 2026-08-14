@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Control Gastos — Sebastián</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -25,24 +25,53 @@
     --blue:#6C8EEF;
     --radius:14px;
   }
+  :root[data-theme="light"]{
+    --bg:#FAF7F2;
+    --surface:#FFFFFF;
+    --surface-2:#F1ECE3;
+    --border:#E4DDD0;
+    --text:#2B2621;
+    --muted:#8C8072;
+    --green:#1FA967;
+    --amber:#C98A1F;
+    --amarillo:#C99A1F;
+    --naranjo:#D9722E;
+    --red:#D3392A;
+    --blue:#3F63D1;
+  }
   *{box-sizing:border-box;}
   body{
     margin:0; background:var(--bg); color:var(--text);
-    font-family:'Inter',sans-serif;
+    font-family:'Plus Jakarta Sans',sans-serif;
     padding:24px 16px 80px;
+    transition:background .25s ease, color .25s ease;
   }
-  h1,h2,h3{font-family:'Space Grotesk',sans-serif; margin:0;}
+  h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif; margin:0; font-weight:700;}
   .mono{font-family:'JetBrains Mono',monospace;}
-  .wrap{max-width:920px; margin:0 auto;}
+  .wrap{max-width:1180px; margin:0 auto;}
+
+  .theme-toggle{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:20px;
+    width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:var(--text); flex-shrink:0;
+  }
+  .theme-toggle svg{width:17px; height:17px;}
+
+  /* 2 columnas en desktop, 1 en celular */
+  .layout{display:grid; grid-template-columns:1fr; gap:0;}
+  @media(min-width:900px){
+    .layout{grid-template-columns:380px 1fr; gap:28px; align-items:start;}
+  }
 
   /* Header */
   header{margin-bottom:28px;}
   .eyebrow{color:var(--muted); font-size:13px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:6px;}
-  h1{font-size:22px; font-weight:600;}
+  h1{font-size:22px; font-weight:700;}
   .header-row{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .header-actions{display:flex; align-items:center; gap:10px;}
   #selectorMes{
     width:auto; background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
-    color:var(--text); padding:8px 12px; font-family:'Inter',sans-serif; font-size:13px;
+    color:var(--text); padding:8px 12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px;
   }
   .hero,.hero-card,.hero-label,.hero-value,.hero-sub{ } /* legacy, no usados */
   .franja{
@@ -109,7 +138,7 @@
   .table-search{padding:12px 14px; border-bottom:1px solid var(--border);}
   .table-search input{
     width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
-    color:var(--text); padding:9px 12px; font-family:'Inter',sans-serif; font-size:13px;
+    color:var(--text); padding:9px 12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px;
   }
   table{width:100%; border-collapse:collapse; font-size:12.5px;}
   th{text-align:left; color:var(--muted); font-weight:500; padding:10px 14px; font-size:11px; text-transform:uppercase; letter-spacing:.04em;}
@@ -128,12 +157,12 @@
   label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:5px;}
   input,select{
     width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
-    color:var(--text); padding:10px 12px; font-family:'Inter',sans-serif; font-size:13.5px;
+    color:var(--text); padding:10px 12px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13.5px;
   }
   .field{margin-bottom:12px;}
   button{
     background:var(--blue); color:#0F1620; border:none; border-radius:8px; padding:11px 18px;
-    font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px; cursor:pointer; width:100%;
+    font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:14px; cursor:pointer; width:100%;
     margin-top:4px;
   }
   button:hover{opacity:.9;}
@@ -152,7 +181,10 @@
     <div class="eyebrow">Control Gastos</div>
     <div class="header-row">
       <h1>Cómo va el mes</h1>
-      <select id="selectorMes"></select>
+      <div class="header-actions">
+        <select id="selectorMes"></select>
+        <button class="theme-toggle" id="themeToggle" title="Cambiar tema" aria-label="Cambiar tema claro/oscuro"></button>
+      </div>
     </div>
     <div class="franja">
       <div class="franja-item">
@@ -194,17 +226,12 @@
     </div>
   </header>
 
+  <div class="layout">
+  <div class="col-left">
+
   <section>
     <div class="section-title">Categorías <span class="n" id="ledgerCount"></span></div>
     <div class="ledger" id="ledger"><div style="color:var(--muted); font-size:13px;">Cargando…</div></div>
-  </section>
-
-  <section>
-    <div class="section-title">Tendencia y distribución</div>
-    <div class="charts-grid">
-      <div class="chart-card"><canvas id="chartTendencia" height="220"></canvas></div>
-      <div class="chart-card"><canvas id="chartDona" height="220"></canvas></div>
-    </div>
   </section>
 
   <section>
@@ -260,6 +287,17 @@
     </div>
   </section>
 
+  </div>
+  <div class="col-right">
+
+  <section>
+    <div class="section-title">Tendencia y distribución</div>
+    <div class="charts-grid">
+      <div class="chart-card"><canvas id="chartTendencia" height="220"></canvas></div>
+      <div class="chart-card"><canvas id="chartDona" height="220"></canvas></div>
+    </div>
+  </section>
+
   <section>
     <div class="section-title">Movimientos recientes</div>
     <div class="table-wrap">
@@ -270,6 +308,9 @@
       </table>
     </div>
   </section>
+
+  </div>
+  </div>
 
   <footer>Actualizado en vivo desde tu Google Sheet · datos personales</footer>
 </div>
@@ -282,6 +323,26 @@ const DASHBOARD_SECRET = 'scc-gastos-2026-x7f2';
 const META_INGRESO_MENSUAL = 2600000;
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// --- Tema claro/oscuro ---
+const ICONO_SOL = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="3.4"/><path d="M10 2v2M10 16v2M18 10h-2M4 10H2M15.5 4.5l-1.4 1.4M5.9 14.1l-1.4 1.4M15.5 15.5l-1.4-1.4M5.9 5.9L4.5 4.5"/></svg>';
+const ICONO_LUNA = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 12.3A7 7 0 018 3.5a7 7 0 106.9 8.8 6.9 6.9 0 011.6 0z"/></svg>';
+
+function aplicarTema(tema){
+  document.documentElement.setAttribute('data-theme', tema);
+  document.getElementById('themeToggle').innerHTML = tema === 'light' ? ICONO_LUNA : ICONO_SOL;
+  localStorage.setItem('tema-dashboard', tema);
+}
+(function initTema(){
+  const guardado = localStorage.getItem('tema-dashboard') || 'dark';
+  aplicarTema(guardado);
+})();
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const actual = document.documentElement.getAttribute('data-theme') || 'dark';
+  aplicarTema(actual === 'light' ? 'dark' : 'light');
+  const anio = window._anioActual, mes = window._mesActual;
+  if(anio !== undefined) renderMes(anio, mes); // repintar gráficos con los nuevos colores
+});
 
 function fmt(n){ return '$' + Math.round(Number(n)||0).toLocaleString('es-CL'); }
 function fmtCorto(n){
@@ -301,6 +362,10 @@ function parseFecha(str){
   m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/); // 15/01/2026 o 15-01-2026
   if(m) return new Date(Number(m[3]), Number(m[2])-1, Number(m[1]));
   return null;
+}
+
+function cssVar(nombre){
+  return getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
 }
 
 function cargarCSV(url){
@@ -417,6 +482,7 @@ function categoriaDeltaTexto(actual, anterior){
 }
 
 function renderMes(anio, mesIdx){
+  window._anioActual = anio; window._mesActual = mesIdx;
   document.getElementById('selectorMes').value = anio + '-' + mesIdx;
 
   const actual = totalesDeMes(anio, mesIdx);
@@ -457,7 +523,7 @@ function renderMes(anio, mesIdx){
   document.getElementById('heroNeto').style.color = colorNeto;
   document.getElementById('heroAhorro').style.color = colorAhorroTxt;
 
-  document.getElementById('sparkGasto').innerHTML = sparklineSVG(serieGasto, colorGasto === 'var(--text)' ? '#8A97A6' : colorGasto);
+  document.getElementById('sparkGasto').innerHTML = sparklineSVG(serieGasto, colorGasto === 'var(--text)' ? 'var(--muted)' : colorGasto);
   document.getElementById('sparkIngreso').innerHTML = sparklineSVG(serieIngreso, colorIngreso);
   document.getElementById('sparkNeto').innerHTML = sparklineSVG(serieNeto, colorNeto);
   document.getElementById('sparkAhorro').innerHTML = sparklineSVG(serieAhorro, '#6C8EEF');
@@ -516,29 +582,31 @@ function renderMes(anio, mesIdx){
   const mesesAtras = seisMeses;
   const totalesPorMes = serieGasto;
 
+  const cRed = cssVar('--red'), cGreen = cssVar('--green'), cText = cssVar('--text'), cMuted = cssVar('--muted'), cBorder = cssVar('--border'), cSurface = cssVar('--surface');
+
   if(chartTendencia) chartTendencia.destroy();
   chartTendencia = new Chart(document.getElementById('chartTendencia'), {
     type:'line',
     data:{
       labels: mesesAtras.map(d => MESES[d.getMonth()].substring(0,3)),
       datasets:[
-        { label:'Gasto', data: serieGasto, borderColor:'#F0654E', backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:'#F0654E',
-          datalabels:{ display:true, color:'#F0654E', align:'top', offset:4, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } },
-        { label:'Ingreso', data: serieIngreso, borderColor:'#4ADE94', backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:'#4ADE94',
-          datalabels:{ display:true, color:'#4ADE94', align:'bottom', offset:4, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } },
-        { label:'Neto', data: serieNeto, borderColor:'#EDEFF2', backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:'#EDEFF2', borderDash:[4,3],
-          datalabels:{ display:true, color:'#EDEFF2', align:'top', offset:10, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } }
+        { label:'Gasto', data: serieGasto, borderColor:cRed, backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:cRed,
+          datalabels:{ display:true, color:cRed, align:'top', offset:4, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } },
+        { label:'Ingreso', data: serieIngreso, borderColor:cGreen, backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:cGreen,
+          datalabels:{ display:true, color:cGreen, align:'bottom', offset:4, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } },
+        { label:'Neto', data: serieNeto, borderColor:cText, backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:cText, borderDash:[4,3],
+          datalabels:{ display:true, color:cText, align:'top', offset:10, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } }
       ]
     },
     options:{
       layout:{ padding:{ top:14, bottom:6 } },
       plugins:{
-        legend:{ display:true, position:'bottom', labels:{color:'#8A97A6', font:{family:'Inter',size:10.5}, boxWidth:10} },
-        title:{display:true, text:'Tendencia mensual', color:'#8A97A6', font:{family:'Inter',size:11}}
+        legend:{ display:true, position:'bottom', labels:{color:cMuted, font:{family:'Plus Jakarta Sans',size:10.5}, boxWidth:10} },
+        title:{display:true, text:'Tendencia mensual', color:cMuted, font:{family:'Plus Jakarta Sans',size:11}}
       },
       scales:{
-        x:{ ticks:{color:'#8A97A6', font:{family:'Inter',size:11}}, grid:{color:'#2A3A4D'} },
-        y:{ ticks:{color:'#8A97A6', font:{family:'JetBrains Mono',size:10}, callback:v=>fmtCorto(v)}, grid:{color:'#2A3A4D'} }
+        x:{ ticks:{color:cMuted, font:{family:'Plus Jakarta Sans',size:11}}, grid:{color:cBorder} },
+        y:{ ticks:{color:cMuted, font:{family:'JetBrains Mono',size:10}, callback:v=>fmtCorto(v)}, grid:{color:cBorder} }
       }
     }
   });
@@ -551,16 +619,16 @@ function renderMes(anio, mesIdx){
     type:'doughnut',
     data:{
       labels: catsTop.map(c=>c[0]),
-      datasets:[{ data: catsTop.map(c=>c[1]), backgroundColor: paletteDona, borderColor:'#172230', borderWidth:2 }]
+      datasets:[{ data: catsTop.map(c=>c[1]), backgroundColor: paletteDona, borderColor:cSurface, borderWidth:2 }]
     },
     options:{
       plugins:{
-        legend:{position:'bottom', labels:{color:'#8A97A6', font:{family:'Inter',size:10}, boxWidth:9}},
-        title:{display:true, text:'Distribución del mes en curso', color:'#8A97A6', font:{family:'Inter',size:11}},
+        legend:{position:'bottom', labels:{color:cMuted, font:{family:'Plus Jakarta Sans',size:10}, boxWidth:9}},
+        title:{display:true, text:'Distribución del mes en curso', color:cMuted, font:{family:'Plus Jakarta Sans',size:11}},
         datalabels:{
           display:true,
           color:'#0F1620',
-          font:{family:'Inter', size:9, weight:'600'},
+          font:{family:'Plus Jakarta Sans', size:9, weight:'600'},
           formatter:(value, ctx) => {
             const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
             const pct = Math.round((value/total)*100);
