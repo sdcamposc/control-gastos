@@ -92,6 +92,17 @@
   .franja-value{font-size:22px; font-weight:700;}
   .franja-sub{font-size:11px; color:var(--muted); margin-top:4px; min-height:14px;}
   .spark{margin-top:8px; opacity:.85;}
+  .badge{display:none; font-size:10.5px; padding:2px 8px; border-radius:20px; margin-left:7px; font-weight:700; vertical-align:middle;}
+  .badge.show{display:inline-block;}
+  .badge-ok{background:rgba(74,222,148,.18); color:var(--green);}
+
+  .chips-row{display:flex; flex-wrap:wrap; gap:6px; padding:10px 14px; border-bottom:1px solid var(--border);}
+  .chips-row:last-of-type{border-bottom:1px solid var(--border);}
+  .chip{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:20px; color:var(--muted);
+    padding:5px 11px; font-size:11px; font-family:'Plus Jakarta Sans',sans-serif; cursor:pointer;
+  }
+  .chip.active{background:var(--blue); color:#0F1620; border-color:var(--blue); font-weight:600;}
   .delta{font-weight:600;}
   .delta.up{color:var(--red);}
   .delta.down{color:var(--green);}
@@ -107,6 +118,12 @@
   /* Section */
   section{margin-top:36px;}
   .section-title{font-size:15px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px;}
+  .section-title-row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;}
+  .section-title-row .section-title{margin-bottom:0;}
+  #selectorCategoriaTendencia{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); padding:7px 10px; font-family:'Plus Jakarta Sans',sans-serif; font-size:12.5px;
+  }
   .section-title .n{color:var(--muted); font-weight:500; font-size:12px;}
 
   /* Category ledger */
@@ -118,7 +135,7 @@
   .ledger-row-top{display:flex; align-items:center; justify-content:space-between; gap:10px;}
   .ledger-left{display:flex; align-items:center; gap:7px; min-width:0;}
   .ledger-emoji{font-size:14px; flex-shrink:0;}
-  .ledger-name{font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .ledger-name{font-size:13px; font-weight:500; white-space:normal;}
   .ledger-right{display:flex; align-items:center; gap:10px; flex-shrink:0;}
   .ledger-amt-wrap{text-align:right;}
   .ledger-amt{font-family:'JetBrains Mono',monospace; font-size:12px; white-space:nowrap;}
@@ -201,7 +218,7 @@
           <span class="ico" id="icoIngreso"></span>
           <span class="franja-label">Ingreso</span>
         </div>
-        <div class="franja-value mono" id="heroIngreso">$0</div>
+        <div class="franja-value"><span class="mono" id="heroIngreso">$0</span><span class="badge" id="badgeIngreso"></span></div>
         <div class="franja-sub" id="heroIngresoSub"></div>
         <div class="spark" id="sparkIngreso"></div>
       </div>
@@ -219,7 +236,7 @@
           <span class="ico" id="icoAhorro"></span>
           <span class="franja-label">Ahorro</span>
         </div>
-        <div class="franja-value mono" id="heroAhorro">$0</div>
+        <div class="franja-value"><span class="mono" id="heroAhorro">$0</span><span class="badge" id="badgeAhorro"></span></div>
         <div class="franja-sub" id="heroAhorroSub"></div>
         <div class="spark" id="sparkAhorro"></div>
       </div>
@@ -232,6 +249,27 @@
   <section>
     <div class="section-title">Categorías <span class="n" id="ledgerCount"></span></div>
     <div class="ledger" id="ledger"><div style="color:var(--muted); font-size:13px;">Cargando…</div></div>
+  </section>
+
+  </div>
+  <div class="col-right">
+
+  <section>
+    <div class="section-title">Tendencia (ingreso, gasto y neto)</div>
+    <div class="chart-card"><canvas id="chartTendencia" height="200"></canvas></div>
+  </section>
+
+  <section>
+    <div class="section-title-row">
+      <div class="section-title">Tendencia por categoría</div>
+      <select id="selectorCategoriaTendencia"></select>
+    </div>
+    <div class="chart-card"><canvas id="chartCategoria" height="180"></canvas></div>
+  </section>
+
+  <section>
+    <div class="section-title">Distribución del mes en curso</div>
+    <div class="chart-card"><canvas id="chartDona" height="240"></canvas></div>
   </section>
 
   <section>
@@ -288,20 +326,14 @@
   </section>
 
   </div>
-  <div class="col-right">
-
-  <section>
-    <div class="section-title">Tendencia y distribución</div>
-    <div class="charts-grid">
-      <div class="chart-card"><canvas id="chartTendencia" height="220"></canvas></div>
-      <div class="chart-card"><canvas id="chartDona" height="220"></canvas></div>
-    </div>
-  </section>
+  </div>
 
   <section>
     <div class="section-title">Movimientos recientes</div>
     <div class="table-wrap">
       <div class="table-search"><input type="text" id="buscador" placeholder="Buscar por comercio o categoría…"></div>
+      <div class="chips-row" id="chipsCuenta"></div>
+      <div class="chips-row" id="chipsMedio"></div>
       <table>
         <thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Comercio</th><th style="text-align:right;">Monto</th></tr></thead>
         <tbody id="tablaBody"><tr><td colspan="5" style="color:var(--muted);">Cargando…</td></tr></tbody>
@@ -309,10 +341,7 @@
     </div>
   </section>
 
-  </div>
-  </div>
-
-  <footer>Actualizado en vivo desde tu Google Sheet · datos personales</footer>
+  <footer>Datos cargados · <span id="ultimaActualizacion">—</span></footer>
 </div>
 
 <script>
@@ -341,7 +370,7 @@ document.getElementById('themeToggle').addEventListener('click', () => {
   const actual = document.documentElement.getAttribute('data-theme') || 'dark';
   aplicarTema(actual === 'light' ? 'dark' : 'light');
   const anio = window._anioActual, mes = window._mesActual;
-  if(anio !== undefined) renderMes(anio, mes); // repintar gráficos con los nuevos colores
+  if(anio !== undefined){ renderMes(anio, mes); renderTendenciaCategoria(); } // repintar gráficos con los nuevos colores
 });
 
 function fmt(n){ return '$' + Math.round(Number(n)||0).toLocaleString('es-CL'); }
@@ -420,20 +449,71 @@ Promise.all([cargarCSV(CSV_MOVIMIENTOS), cargarCSV(CSV_TOPES)]).then(([movs, top
 
   poblarSelectorMes();
   poblarFormulario();
+  poblarSelectorCategoriaTendencia();
+  poblarChips();
   pintarIconos();
+  document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
 
   const hoy = new Date();
   renderMes(hoy.getFullYear(), hoy.getMonth());
+  renderTendenciaCategoria();
 
   document.getElementById('selectorMes').addEventListener('change', e => {
     const [a, mm] = e.target.value.split('-');
     renderMes(Number(a), Number(mm));
+    renderTendenciaCategoria();
   });
+
+  document.getElementById('selectorCategoriaTendencia').addEventListener('change', renderTendenciaCategoria);
 
 }).catch(err => {
   document.getElementById('ledger').innerHTML = '<div style="color:var(--red); font-size:13px;">No se pudieron cargar los datos. Revisa que el Sheet siga publicado.</div>';
   console.error(err);
 });
+
+function poblarSelectorCategoriaTendencia(){
+  const sel = document.getElementById('selectorCategoriaTendencia');
+  Object.keys(TOPES).forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat; opt.textContent = (ICONOS_CAT[cat]||'') + ' ' + cat;
+    sel.appendChild(opt);
+  });
+}
+
+let chartCategoria;
+function renderTendenciaCategoria(){
+  const cat = document.getElementById('selectorCategoriaTendencia').value;
+  if(!cat) return;
+  const anio = window._anioActual, mesIdx = window._mesActual;
+  const meses12 = [];
+  for(let i=11;i>=0;i--) meses12.push(new Date(anio, mesIdx-i, 1));
+  const serie = meses12.map(d => totalesDeMes(d.getFullYear(), d.getMonth()).totalesCat[cat] || 0);
+  const tope = TOPES[cat] || 0;
+
+  if(chartCategoria) chartCategoria.destroy();
+  chartCategoria = new Chart(document.getElementById('chartCategoria'), {
+    type:'bar',
+    data:{
+      labels: meses12.map(d => MESES[d.getMonth()].substring(0,3)),
+      datasets:[{
+        data: serie,
+        backgroundColor: serie.map(v => tope && v >= tope ? cssVar('--red') : (tope && v >= tope*0.8 ? cssVar('--naranjo') : cssVar('--blue'))),
+        borderRadius:4,
+        datalabels:{ display:true, color:cssVar('--muted'), anchor:'end', align:'top', font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto }
+      }]
+    },
+    options:{
+      plugins:{
+        legend:{display:false},
+        title:{display:false}
+      },
+      scales:{
+        x:{ ticks:{color:cssVar('--muted'), font:{family:'Plus Jakarta Sans',size:11}}, grid:{display:false} },
+        y:{ display:false, grid:{display:false} }
+      }
+    }
+  });
+}
 
 function poblarSelectorMes(){
   const sel = document.getElementById('selectorMes');
@@ -495,14 +575,21 @@ function renderMes(anio, mesIdx){
 
   document.getElementById('heroIngreso').textContent = fmt(actual.ingreso);
   const cumpleMeta = actual.ingreso >= META_INGRESO_MENSUAL;
-  document.getElementById('heroIngresoSub').innerHTML = 'Meta: ' + fmt(META_INGRESO_MENSUAL) + (cumpleMeta ? ' · cumplida ✓' : ' · faltan ' + fmt(META_INGRESO_MENSUAL-actual.ingreso));
+  document.getElementById('heroIngresoSub').innerHTML = 'Meta: ' + fmt(META_INGRESO_MENSUAL) + (cumpleMeta ? '' : ' · faltan ' + fmt(META_INGRESO_MENSUAL-actual.ingreso));
+  const badgeIngreso = document.getElementById('badgeIngreso');
+  badgeIngreso.className = cumpleMeta ? 'badge show badge-ok' : 'badge';
+  badgeIngreso.textContent = cumpleMeta ? '🏆 Meta' : '';
 
   const neto = actual.ingreso - actual.gasto;
   document.getElementById('heroNeto').textContent = fmt(neto);
 
   document.getElementById('heroAhorro').textContent = fmt(actual.ahorro);
   const metaAhorro = TOPES['Ahorro/Inversion'] || 0;
-  document.getElementById('heroAhorroSub').textContent = metaAhorro ? ('Meta: ' + fmt(metaAhorro) + (actual.ahorro>=metaAhorro ? ' · cumplida ✓' : '')) : '';
+  const cumpleAhorro = metaAhorro && actual.ahorro >= metaAhorro;
+  document.getElementById('heroAhorroSub').textContent = metaAhorro ? ('Meta: ' + fmt(metaAhorro)) : '';
+  const badgeAhorro = document.getElementById('badgeAhorro');
+  badgeAhorro.className = cumpleAhorro ? 'badge show badge-ok' : 'badge';
+  badgeAhorro.textContent = cumpleAhorro ? '🏆 Meta' : '';
 
   // Franja: últimos 6 meses para sparklines (incluye el mes seleccionado)
   const seisMeses = [];
@@ -553,10 +640,14 @@ function renderMes(anio, mesIdx){
       else color = 'var(--green)';
     }
 
-    const serieCat = seisMeses.map(d => totalesDeMes(d.getFullYear(), d.getMonth()).totalesCat[cat] || 0);
-
     const row = document.createElement('div');
     row.className = 'ledger-row';
+    row.style.cursor = 'pointer';
+    row.title = 'Ver tendencia de ' + cat;
+    row.addEventListener('click', () => {
+      const sel = document.getElementById('selectorCategoriaTendencia');
+      if(sel){ sel.value = cat; renderTendenciaCategoria(); document.getElementById('chartCategoria').scrollIntoView({behavior:'smooth', block:'center'}); }
+    });
     row.innerHTML = `
       <div class="ledger-row-top">
         <div class="ledger-left">
@@ -569,7 +660,6 @@ function renderMes(anio, mesIdx){
             <div class="ledger-amt" style="color:${color}">${fmt(gastado)}${tope ? ' / ' + fmt(tope) : ''}</div>
             <div class="ledger-delta">${categoriaDeltaTexto(gastado, anteriorGastado)}</div>
           </div>
-          <div class="ledger-spark">${sparklineSVG(serieCat, color)}</div>
         </div>
       </div>
       <div class="ledger-bar"><div class="ledger-bar-fill" style="width:${Math.min(pct*100,100)}%; background:${color}"></div></div>
@@ -642,16 +732,53 @@ function renderMes(anio, mesIdx){
 
   // Tabla: movimientos del mes seleccionado
   const delMesOrdenado = actual.delMes.slice().sort((a,b)=>b._fecha-a._fecha);
-  pintarTabla(delMesOrdenado, '');
-  document.getElementById('buscador').oninput = e => pintarTabla(delMesOrdenado, e.target.value);
+  window._delMesActual = delMesOrdenado;
+  pintarTabla(delMesOrdenado, document.getElementById('buscador').value);
+  document.getElementById('buscador').oninput = e => pintarTabla(window._delMesActual, e.target.value);
+}
+
+let FILTRO_CUENTA = '', FILTRO_MEDIO = '';
+
+function poblarChips(){
+  const valoresUnicos = (campo) => {
+    const cuentas = {};
+    MOVS.forEach(m => { const v = (m[campo]||'').trim(); if(v) cuentas[v] = (cuentas[v]||0)+1; });
+    return Object.keys(cuentas).sort((a,b)=>cuentas[b]-cuentas[a]);
+  };
+  const armar = (contId, valores, tipo) => {
+    const cont = document.getElementById(contId);
+    cont.innerHTML = '';
+    const todas = document.createElement('button');
+    todas.type = 'button'; todas.className = 'chip active'; todas.textContent = 'Todas';
+    todas.onclick = () => seleccionarChip(cont, todas, tipo, '');
+    cont.appendChild(todas);
+    valores.slice(0,8).forEach(v => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.textContent = v;
+      b.onclick = () => seleccionarChip(cont, b, tipo, v);
+      cont.appendChild(b);
+    });
+  };
+  armar('chipsCuenta', valoresUnicos('Banco_Cuenta'), 'cuenta');
+  armar('chipsMedio', valoresUnicos('Medio'), 'medio');
+}
+
+function seleccionarChip(cont, btn, tipo, valor){
+  Array.from(cont.children).forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  if(tipo === 'cuenta') FILTRO_CUENTA = valor; else FILTRO_MEDIO = valor;
+  pintarTabla(window._delMesActual || [], document.getElementById('buscador').value);
 }
 
 function pintarTabla(lista, filtro){
   const tbody = document.getElementById('tablaBody');
   const f = (filtro||'').toLowerCase();
-  const filtrados = lista.filter(m => !f ||
-    (m['Comercio_Descripción']||'').toLowerCase().includes(f) ||
-    (m['Categoría']||'').toLowerCase().includes(f));
+  const filtrados = lista.filter(m => {
+    const pasaTexto = !f || (m['Comercio_Descripción']||'').toLowerCase().includes(f) || (m['Categoría']||'').toLowerCase().includes(f);
+    const pasaCuenta = !FILTRO_CUENTA || (m['Banco_Cuenta']||'').trim() === FILTRO_CUENTA;
+    const pasaMedio = !FILTRO_MEDIO || (m['Medio']||'').trim() === FILTRO_MEDIO;
+    return pasaTexto && pasaCuenta && pasaMedio;
+  });
   tbody.innerHTML = filtrados.length ? '' : '<tr><td colspan="5" style="color:var(--muted);">Sin resultados</td></tr>';
   filtrados.forEach(m => {
     const tr = document.createElement('tr');
