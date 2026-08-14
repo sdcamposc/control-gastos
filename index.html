@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   :root{
@@ -279,6 +280,14 @@ const META_INGRESO_MENSUAL = 2600000;
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 function fmt(n){ return '$' + Math.round(Number(n)||0).toLocaleString('es-CL'); }
+function fmtCorto(n){
+  const v = Number(n)||0;
+  if(Math.abs(v) >= 1000000) return '$' + (v/1000000).toFixed(1).replace('.0','') + 'M';
+  if(Math.abs(v) >= 1000) return '$' + Math.round(v/1000) + 'k';
+  return '$' + Math.round(v);
+}
+Chart.register(ChartDataLabels);
+Chart.defaults.set('plugins.datalabels', { display: false }); // apagado por defecto, se activa por gráfico
 
 function parseFecha(str){
   if(!str) return null;
@@ -508,30 +517,53 @@ function renderMes(anio, mesIdx){
     type:'line',
     data:{
       labels: mesesAtras.map(d => MESES[d.getMonth()].substring(0,3)),
-      datasets:[{ data: totalesPorMes, borderColor:'#6C8EEF', backgroundColor:'rgba(108,142,239,.15)', fill:true, tension:.35, pointRadius:3, pointBackgroundColor:'#6C8EEF' }]
+      datasets:[
+        { label:'Gasto', data: serieGasto, borderColor:'#F0654E', backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:'#F0654E',
+          datalabels:{ display:true, color:'#F0654E', align:'top', offset:4, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } },
+        { label:'Ingreso', data: serieIngreso, borderColor:'#4ADE94', backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:'#4ADE94',
+          datalabels:{ display:true, color:'#4ADE94', align:'bottom', offset:4, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } },
+        { label:'Neto', data: serieNeto, borderColor:'#EDEFF2', backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:'#EDEFF2', borderDash:[4,3],
+          datalabels:{ display:true, color:'#EDEFF2', align:'top', offset:10, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } }
+      ]
     },
     options:{
-      plugins:{legend:{display:false}, title:{display:true, text:'Gasto mensual (últimos 6 meses)', color:'#8A97A6', font:{family:'Inter',size:11}}},
+      layout:{ padding:{ top:14, bottom:6 } },
+      plugins:{
+        legend:{ display:true, position:'bottom', labels:{color:'#8A97A6', font:{family:'Inter',size:10.5}, boxWidth:10} },
+        title:{display:true, text:'Tendencia mensual', color:'#8A97A6', font:{family:'Inter',size:11}}
+      },
       scales:{
         x:{ ticks:{color:'#8A97A6', font:{family:'Inter',size:11}}, grid:{color:'#2A3A4D'} },
-        y:{ ticks:{color:'#8A97A6', font:{family:'JetBrains Mono',size:10}, callback:v=>'$'+(v/1000)+'k'}, grid:{color:'#2A3A4D'} }
+        y:{ ticks:{color:'#8A97A6', font:{family:'JetBrains Mono',size:10}, callback:v=>fmtCorto(v)}, grid:{color:'#2A3A4D'} }
       }
     }
   });
 
-  // Dona (mes seleccionado)
-  const catsTop = Object.entries(actual.totalesCat).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  // Dona (mes seleccionado) — todas las categorías con gasto
+  const catsTop = Object.entries(actual.totalesCat).sort((a,b)=>b[1]-a[1]);
+  const paletteDona = catsTop.map((_,i) => 'hsl(' + Math.round((360/Math.max(catsTop.length,1))*i) + ',65%,62%)');
   if(chartDona) chartDona.destroy();
   chartDona = new Chart(document.getElementById('chartDona'), {
     type:'doughnut',
     data:{
       labels: catsTop.map(c=>c[0]),
-      datasets:[{ data: catsTop.map(c=>c[1]), backgroundColor:['#6C8EEF','#4ADE94','#F5B942','#F0654E','#9D7BD8','#4FC3D9','#E39BB8'], borderColor:'#172230', borderWidth:2 }]
+      datasets:[{ data: catsTop.map(c=>c[1]), backgroundColor: paletteDona, borderColor:'#172230', borderWidth:2 }]
     },
     options:{
       plugins:{
-        legend:{position:'bottom', labels:{color:'#8A97A6', font:{family:'Inter',size:10.5}, boxWidth:10}},
-        title:{display:true, text:'Distribución del mes', color:'#8A97A6', font:{family:'Inter',size:11}}
+        legend:{position:'bottom', labels:{color:'#8A97A6', font:{family:'Inter',size:10}, boxWidth:9}},
+        title:{display:true, text:'Distribución del mes en curso', color:'#8A97A6', font:{family:'Inter',size:11}},
+        datalabels:{
+          display:true,
+          color:'#0F1620',
+          font:{family:'Inter', size:9, weight:'600'},
+          formatter:(value, ctx) => {
+            const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
+            const pct = Math.round((value/total)*100);
+            if(pct < 3) return '';
+            return fmtCorto(value) + '\n' + pct + '%';
+          }
+        }
       }
     }
   });
