@@ -152,6 +152,8 @@
 
   /* Table */
   .table-wrap{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;}
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  @media(max-width:640px){ table{min-width:520px;} }
   .table-search{padding:12px 14px; border-bottom:1px solid var(--border);}
   .table-search input{
     width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:8px;
@@ -334,10 +336,12 @@
       <div class="table-search"><input type="text" id="buscador" placeholder="Buscar por comercio o categoría…"></div>
       <div class="chips-row" id="chipsCuenta"></div>
       <div class="chips-row" id="chipsMedio"></div>
+      <div class="table-scroll">
       <table>
         <thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Comercio</th><th style="text-align:right;">Monto</th></tr></thead>
         <tbody id="tablaBody"><tr><td colspan="5" style="color:var(--muted);">Cargando…</td></tr></tbody>
       </table>
+      </div>
     </div>
   </section>
 
