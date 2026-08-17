@@ -149,6 +149,8 @@
   .charts-grid{display:grid; grid-template-columns:1.4fr 1fr; gap:16px;}
   @media(max-width:640px){.charts-grid{grid-template-columns:1fr;}}
   .chart-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px;}
+  .chart-box{position:relative; height:260px;}
+  .chart-box.chart-box-dona{height:320px;}
 
   /* Table */
   .table-wrap{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;}
@@ -258,7 +260,7 @@
 
   <section>
     <div class="section-title">Tendencia (ingreso, gasto y neto)</div>
-    <div class="chart-card"><canvas id="chartTendencia" height="200"></canvas></div>
+    <div class="chart-card"><div class="chart-box"><canvas id="chartTendencia"></canvas></div></div>
   </section>
 
   <section>
@@ -266,12 +268,12 @@
       <div class="section-title">Tendencia por categoría</div>
       <select id="selectorCategoriaTendencia"></select>
     </div>
-    <div class="chart-card"><canvas id="chartCategoria" height="180"></canvas></div>
+    <div class="chart-card"><div class="chart-box"><canvas id="chartCategoria"></canvas></div></div>
   </section>
 
   <section>
     <div class="section-title">Distribución del mes en curso</div>
-    <div class="chart-card"><canvas id="chartDona" height="240"></canvas></div>
+    <div class="chart-card"><div class="chart-box chart-box-dona"><canvas id="chartDona"></canvas></div></div>
   </section>
 
   <section>
@@ -493,20 +495,28 @@ function renderTendenciaCategoria(){
   for(let i=11;i>=0;i--) meses12.push(new Date(anio, mesIdx-i, 1));
   const serie = meses12.map(d => totalesDeMes(d.getFullYear(), d.getMonth()).totalesCat[cat] || 0);
   const tope = TOPES[cat] || 0;
+  const colorLinea = cssVar('--blue');
+  const coloresPuntos = serie.map(v => tope && v >= tope ? cssVar('--red') : (tope && v >= tope*0.8 ? cssVar('--naranjo') : colorLinea));
 
   if(chartCategoria) chartCategoria.destroy();
   chartCategoria = new Chart(document.getElementById('chartCategoria'), {
-    type:'bar',
+    type:'line',
     data:{
       labels: meses12.map(d => MESES[d.getMonth()].substring(0,3)),
       datasets:[{
         data: serie,
-        backgroundColor: serie.map(v => tope && v >= tope ? cssVar('--red') : (tope && v >= tope*0.8 ? cssVar('--naranjo') : cssVar('--blue'))),
-        borderRadius:4,
-        datalabels:{ display:true, color:cssVar('--muted'), anchor:'end', align:'top', font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto }
+        borderColor: colorLinea,
+        backgroundColor: 'transparent',
+        tension:.3,
+        pointRadius:4,
+        pointBackgroundColor: coloresPuntos,
+        pointBorderColor: coloresPuntos,
+        datalabels:{ display:true, color:cssVar('--muted'), align:'top', offset:6, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto }
       }]
     },
     options:{
+      maintainAspectRatio:false,
+      layout:{ padding:{ top:16 } },
       plugins:{
         legend:{display:false},
         title:{display:false}
@@ -693,6 +703,7 @@ function renderMes(anio, mesIdx){
       ]
     },
     options:{
+      maintainAspectRatio:false,
       layout:{ padding:{ top:14, bottom:6 } },
       plugins:{
         legend:{ display:true, position:'bottom', labels:{color:cMuted, font:{family:'Plus Jakarta Sans',size:10.5}, boxWidth:10} },
@@ -716,6 +727,7 @@ function renderMes(anio, mesIdx){
       datasets:[{ data: catsTop.map(c=>c[1]), backgroundColor: paletteDona, borderColor:cSurface, borderWidth:2 }]
     },
     options:{
+      maintainAspectRatio:false,
       plugins:{
         legend:{position:'bottom', labels:{color:cMuted, font:{family:'Plus Jakarta Sans',size:10}, boxWidth:9}},
         title:{display:true, text:'Distribución del mes en curso', color:cMuted, font:{family:'Plus Jakarta Sans',size:11}},
