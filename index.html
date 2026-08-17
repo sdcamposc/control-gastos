@@ -97,6 +97,32 @@
   .badge-ok{background:rgba(74,222,148,.18); color:var(--green);}
 
   .chips-row{display:flex; flex-wrap:wrap; gap:6px; padding:10px 14px; border-bottom:1px solid var(--border);}
+
+  .ytd-strip{
+    display:flex; flex-wrap:wrap; gap:16px; align-items:center;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
+    padding:10px 16px; margin-bottom:24px; font-size:12.5px; color:var(--muted);
+  }
+  .ytd-label{font-weight:600; color:var(--text);}
+  .ytd-item b{color:var(--text); margin-left:4px;}
+
+  .conciliacion-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px;}
+  .conc-banco{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:12.5px;}
+  .conc-banco:last-child{border-bottom:none;}
+  .conc-pct{font-family:'JetBrains Mono',monospace; font-weight:700;}
+  .conc-fecha{color:var(--muted); font-size:10.5px;}
+
+  .topes-editor{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px; display:flex; flex-direction:column; gap:8px;}
+  .tope-row{display:grid; grid-template-columns:1fr 90px auto; gap:8px; align-items:center; font-size:12px;}
+  .tope-row input{padding:6px 8px; font-size:12px;}
+  .tope-row button{padding:6px 10px; font-size:11px; margin-top:0; width:auto;}
+  .tope-msg{font-size:10.5px; min-height:14px;}
+
+  @media print{
+    .theme-toggle, #selectorMes, .form-card, .table-search, .chips-row, #btnToggleTopes, .topes-editor { display:none !important; }
+    body{background:#fff; color:#000;}
+    .franja, .ledger-row, .chart-card, .conciliacion-card { border:1px solid #ccc !important; background:#fff !important; }
+  }
   .chips-row:last-of-type{border-bottom:1px solid var(--border);}
   .chip{
     background:var(--surface-2); border:1px solid var(--border); border-radius:20px; color:var(--muted);
@@ -204,6 +230,7 @@
       <h1>Cómo va el mes</h1>
       <div class="header-actions">
         <select id="selectorMes"></select>
+        <button class="theme-toggle" id="btnExportar" title="Exportar reporte del mes" aria-label="Exportar reporte">🖨️</button>
         <button class="theme-toggle" id="themeToggle" title="Cambiar tema" aria-label="Cambiar tema claro/oscuro"></button>
       </div>
     </div>
@@ -247,12 +274,35 @@
     </div>
   </header>
 
+  <div class="ytd-strip" id="ytdStrip">
+    <span class="ytd-label">Acumulado <span id="ytdAnio">2026</span>:</span>
+    <span class="ytd-item">Gasto <b class="mono" id="ytdGasto">$0</b></span>
+    <span class="ytd-item">Ingreso <b class="mono" id="ytdIngreso">$0</b></span>
+    <span class="ytd-item">Neto <b class="mono" id="ytdNeto">$0</b></span>
+    <span class="ytd-item">Ahorro <b class="mono" id="ytdAhorro">$0</b></span>
+  </div>
+
   <div class="layout">
   <div class="col-left">
 
   <section>
     <div class="section-title">Categorías <span class="n" id="ledgerCount"></span></div>
     <div class="ledger" id="ledger"><div style="color:var(--muted); font-size:13px;">Cargando…</div></div>
+  </section>
+
+  <section>
+    <div class="section-title">Conciliación</div>
+    <div class="conciliacion-card" id="conciliacionCard">
+      <div style="color:var(--muted); font-size:13px;">Cargando…</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-title-row">
+      <div class="section-title">Ajustar topes</div>
+      <button class="chip" id="btnToggleTopes" type="button" style="margin:0;">Editar</button>
+    </div>
+    <div class="topes-editor" id="topesEditor" style="display:none;"></div>
   </section>
 
   </div>
@@ -457,17 +507,27 @@ Promise.all([cargarCSV(CSV_MOVIMIENTOS), cargarCSV(CSV_TOPES)]).then(([movs, top
   poblarFormulario();
   poblarSelectorCategoriaTendencia();
   poblarChips();
+  poblarEditorTopes();
   pintarIconos();
   document.getElementById('ultimaActualizacion').textContent = new Date().toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
 
   const hoy = new Date();
   renderMes(hoy.getFullYear(), hoy.getMonth());
   renderTendenciaCategoria();
+  renderYTD(hoy.getFullYear(), hoy.getMonth());
+  renderConciliacion();
+
+  document.getElementById('btnExportar').addEventListener('click', () => window.print());
+  document.getElementById('btnToggleTopes').addEventListener('click', () => {
+    const el = document.getElementById('topesEditor');
+    el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+  });
 
   document.getElementById('selectorMes').addEventListener('change', e => {
     const [a, mm] = e.target.value.split('-');
     renderMes(Number(a), Number(mm));
     renderTendenciaCategoria();
+    renderYTD(Number(a), Number(mm));
   });
 
   document.getElementById('selectorCategoriaTendencia').addEventListener('change', renderTendenciaCategoria);
@@ -854,6 +914,95 @@ function poblarFormulario(){
       msg.textContent = '⚠️ No se pudo conectar. Puedes registrar por Telegram mientras revisamos esto.';
       msg.className = 'form-msg err';
     });
+  });
+}
+
+// ============ VISTA ANUAL (YTD) ============
+function renderYTD(anio, mesHasta){
+  let gasto = 0, ingreso = 0, ahorro = 0;
+  for(let m = 0; m <= mesHasta; m++){
+    const t = totalesDeMes(anio, m);
+    gasto += t.gasto; ingreso += t.ingreso; ahorro += t.ahorro;
+  }
+  document.getElementById('ytdAnio').textContent = anio;
+  document.getElementById('ytdGasto').textContent = fmt(gasto);
+  document.getElementById('ytdIngreso').textContent = fmt(ingreso);
+  document.getElementById('ytdNeto').textContent = fmt(ingreso - gasto);
+  document.getElementById('ytdAhorro').textContent = fmt(ahorro);
+}
+
+// ============ CONCILIACIÓN ============
+const CSV_CONCILIACION = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRLfN2qjT0gT6YQloWSrSyJ4eJgZtF1LnCXEjDMZlOlwz_72G0L8lTHNOZmnepcCq3k2dvX7WJ5upLx/pub?gid=1313860211&single=true&output=csv';
+
+function renderConciliacion(){
+  const cont = document.getElementById('conciliacionCard');
+  if(!CSV_CONCILIACION){
+    cont.innerHTML = '<div style="color:var(--muted); font-size:12px;">Aún no conectado. Crea la hoja <b>Conciliacion_Historial</b>, publícala como CSV y pega el link en <code>CSV_CONCILIACION</code> del código.</div>';
+    return;
+  }
+  cargarCSV(CSV_CONCILIACION).then(datos => {
+    if(!datos.length){ cont.innerHTML = '<div style="color:var(--muted); font-size:12px;">Sin registros aún.</div>'; return; }
+    const porBanco = {};
+    datos.forEach(r => { porBanco[r['Banco']] = r; }); // se queda con el último de cada banco (asume orden cronológico)
+    cont.innerHTML = '';
+    Object.values(porBanco).forEach(r => {
+      const pct = Number(r['Pct_Capturado']) || 0;
+      const color = pct >= 90 ? 'var(--green)' : (pct >= 70 ? 'var(--naranjo)' : 'var(--red)');
+      const div = document.createElement('div');
+      div.className = 'conc-banco';
+      div.innerHTML = `<div>${r['Banco']}<div class="conc-fecha">${r['Fecha']}</div></div><div class="conc-pct" style="color:${color}">${pct}%</div>`;
+      cont.appendChild(div);
+    });
+  });
+}
+
+// ============ EDITOR DE TOPES ============
+function poblarEditorTopes(){
+  const cont = document.getElementById('topesEditor');
+  cont.innerHTML = '';
+  Object.keys(TOPES).forEach(cat => {
+    const row = document.createElement('div');
+    row.className = 'tope-row';
+    row.innerHTML = `
+      <span>${ICONOS_CAT[cat]||''} ${cat}</span>
+      <input type="number" value="${TOPES[cat]}" id="tope-${cat.replace(/[^a-zA-Z0-9]/g,'')}">
+      <button type="button">Guardar</button>
+    `;
+    const btn = row.querySelector('button');
+    const input = row.querySelector('input');
+    btn.addEventListener('click', () => guardarTope_(cat, input.value, btn));
+    cont.appendChild(row);
+  });
+  const msg = document.createElement('div');
+  msg.className = 'tope-msg'; msg.id = 'topesMsg';
+  cont.appendChild(msg);
+}
+
+function guardarTope_(categoria, valor, btn){
+  const msg = document.getElementById('topesMsg');
+  const nuevoTope = Number(valor);
+  if(!nuevoTope || nuevoTope < 0){
+    msg.textContent = '⚠️ Monto inválido.'; msg.style.color = 'var(--red)'; return;
+  }
+  if(nuevoTope > 1000000){
+    msg.textContent = '⚠️ El tope no puede superar $1.000.000 desde acá. Ajústalo directo en el Sheet si es un valor real más alto.';
+    msg.style.color = 'var(--red)'; return;
+  }
+  btn.disabled = true; msg.textContent = 'Guardando…'; msg.style.color = 'var(--muted)';
+  fetch(WEBAPP_URL, {
+    method:'POST',
+    body: JSON.stringify({ accion:'actualizarTope', secreto: DASHBOARD_SECRET, categoria: categoria, nuevoTope: nuevoTope })
+  }).then(r => r.json()).then(r => {
+    btn.disabled = false;
+    if(r.ok){
+      msg.textContent = '✅ Tope de "' + categoria + '" actualizado. Se reflejará al recargar.'; msg.style.color = 'var(--green)';
+      TOPES[categoria] = nuevoTope;
+    } else {
+      msg.textContent = '⚠️ ' + (r.error||'Error al guardar.'); msg.style.color = 'var(--red)';
+    }
+  }).catch(() => {
+    btn.disabled = false;
+    msg.textContent = '⚠️ No se pudo conectar.'; msg.style.color = 'var(--red)';
   });
 }
 </script>
