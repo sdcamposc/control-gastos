@@ -571,12 +571,13 @@ function renderTendenciaCategoria(){
         pointRadius:4,
         pointBackgroundColor: coloresPuntos,
         pointBorderColor: coloresPuntos,
-        datalabels:{ display:true, color:cssVar('--muted'), align:'top', offset:6, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto }
+        datalabels:{ display:true, color:cssVar('--text'), align:'top', offset:8, font:{family:'JetBrains Mono', size:11, weight:'700'}, formatter:fmtCorto,
+          backgroundColor:cssVar('--surface-2'), borderRadius:4, padding:{top:3,bottom:3,left:5,right:5} }
       }]
     },
     options:{
       maintainAspectRatio:false,
-      layout:{ padding:{ top:16 } },
+      layout:{ padding:{ top:28 } },
       plugins:{
         legend:{display:false},
         title:{display:false}
@@ -750,21 +751,26 @@ function renderMes(anio, mesIdx){
 
   if(chartTendencia) chartTendencia.destroy();
   chartTendencia = new Chart(document.getElementById('chartTendencia'), {
-    type:'line',
+    type:'bar',
     data:{
       labels: mesesAtras.map(d => MESES[d.getMonth()].substring(0,3)),
       datasets:[
-        { label:'Gasto', data: serieGasto, borderColor:cRed, backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:cRed,
-          datalabels:{ display:true, color:cRed, align:'top', offset:4, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } },
-        { label:'Ingreso', data: serieIngreso, borderColor:cGreen, backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:cGreen,
-          datalabels:{ display:true, color:cGreen, align:'bottom', offset:4, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } },
-        { label:'Neto', data: serieNeto, borderColor:cText, backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:cText, borderDash:[4,3],
-          datalabels:{ display:true, color:cText, align:'top', offset:10, font:{family:'JetBrains Mono', size:9}, formatter:fmtCorto } }
+        { type:'bar', label:'Neto', data: serieNeto, order:2, borderRadius:4,
+          backgroundColor: serieNeto.map(v => v >= 0 ? 'rgba(74,222,148,.35)' : 'rgba(240,101,78,.35)'),
+          datalabels:{ display:true, color:cText, anchor:'end', align:'end', offset:2,
+            font:{family:'JetBrains Mono', size:11, weight:'700'}, formatter:fmtCorto,
+            backgroundColor:cSurface, borderRadius:4, padding:{top:3,bottom:3,left:5,right:5} } },
+        { type:'line', label:'Gasto', data: serieGasto, order:1, borderColor:cRed, backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:cRed,
+          datalabels:{ display:true, color:'#fff', align:'top', offset:6, font:{family:'JetBrains Mono', size:11, weight:'700'}, formatter:fmtCorto,
+            backgroundColor:cRed, borderRadius:4, padding:{top:2,bottom:2,left:5,right:5} } },
+        { type:'line', label:'Ingreso', data: serieIngreso, order:1, borderColor:cGreen, backgroundColor:'transparent', tension:.3, pointRadius:3, pointBackgroundColor:cGreen,
+          datalabels:{ display:true, color:'#0F1620', align:'bottom', offset:6, font:{family:'JetBrains Mono', size:11, weight:'700'}, formatter:fmtCorto,
+            backgroundColor:cGreen, borderRadius:4, padding:{top:2,bottom:2,left:5,right:5} } }
       ]
     },
     options:{
       maintainAspectRatio:false,
-      layout:{ padding:{ top:14, bottom:6 } },
+      layout:{ padding:{ top:26, bottom:20 } },
       plugins:{
         legend:{ display:true, position:'bottom', labels:{color:cMuted, font:{family:'Plus Jakarta Sans',size:10.5}, boxWidth:10} },
         title:{display:true, text:'Tendencia mensual', color:cMuted, font:{family:'Plus Jakarta Sans',size:11}}
@@ -794,12 +800,17 @@ function renderMes(anio, mesIdx){
         datalabels:{
           display:true,
           color:'#0F1620',
-          font:{family:'Plus Jakarta Sans', size:9, weight:'600'},
+          font:{family:'Plus Jakarta Sans', size:11, weight:'700'},
+          backgroundColor: (ctx) => ctx.dataset.backgroundColor[ctx.dataIndex],
+          borderColor: '#0F1620',
+          borderWidth: 1.5,
+          borderRadius: 5,
+          padding: {top:4, bottom:4, left:6, right:6},
           formatter:(value, ctx) => {
             const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
             const pct = Math.round((value/total)*100);
-            if(pct < 3) return '';
-            return fmtCorto(value) + '\n' + pct + '%';
+            if(pct < 5) return '';
+            return fmtCorto(value) + ' · ' + pct + '%';
           }
         }
       }
