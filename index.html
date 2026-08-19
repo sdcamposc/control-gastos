@@ -612,7 +612,12 @@ function totalesDeMes(anio, mesIdx){
     const c = (m['Categoría']||'Sin categoría').trim();
     totalesCat[c] = (totalesCat[c]||0) + m._monto;
   });
-  return { delMes, gasto, ingreso, ahorro, totalesCat, nMovs: delMes.filter(m=>m['Tipo']==='Gasto').length };
+  const totalesAhorroCat = {};
+  delMes.filter(m=>m['Tipo']==='Ahorro').forEach(m=>{
+    const c = (m['Categoría']||'Sin categoría').trim();
+    totalesAhorroCat[c] = (totalesAhorroCat[c]||0) + m._monto;
+  });
+  return { delMes, gasto, ingreso, ahorro, totalesCat, totalesAhorroCat, nMovs: delMes.filter(m=>m['Tipo']==='Gasto').length };
 }
 
 function deltaTexto(actual, anterior){
@@ -693,13 +698,15 @@ function renderMes(anio, mesIdx){
   // Ledger
   const ledger = document.getElementById('ledger');
   ledger.innerHTML = '';
+  const montoParaOrdenar = c => TIPOS_TOPE[c] === 'Meta mínima' ? (actual.totalesAhorroCat[c]||0) : (actual.totalesCat[c]||0);
   const categoriasOrdenadas = Object.keys(TOPES)
     .filter(c => TIPOS_TOPE[c] !== 'Sin tope' || actual.totalesCat[c])
-    .sort((a,b) => (actual.totalesCat[b]||0) - (actual.totalesCat[a]||0));
+    .sort((a,b) => montoParaOrdenar(b) - montoParaOrdenar(a));
 
   categoriasOrdenadas.forEach(cat => {
-    const gastado = actual.totalesCat[cat] || 0;
-    const anteriorGastado = anterior.totalesCat[cat] || 0;
+    const esAhorro = TIPOS_TOPE[cat] === 'Meta mínima';
+    const gastado = esAhorro ? (actual.totalesAhorroCat[cat] || 0) : (actual.totalesCat[cat] || 0);
+    const anteriorGastado = esAhorro ? (anterior.totalesAhorroCat[cat] || 0) : (anterior.totalesCat[cat] || 0);
     const tope = TOPES[cat] || 0;
     const pct = tope > 0 ? gastado/tope : 0;
 
